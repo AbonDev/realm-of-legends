@@ -4,6 +4,10 @@ import { Button } from '../components/UI/Fantasy/Button';
 import { Panel } from '../components/UI/Fantasy/Panel';
 import { useCharacter } from '../lib/stores/useCharacter';
 import { playClick, playSuccess } from '../lib/soundEffects';
+import SpeechRecognition from '../components/VoiceInput/SpeechRecognition';
+import TextToSpeech from '../components/VoiceInput/TextToSpeech';
+import DiceRoller from '../components/GameElements/DiceRoller';
+import GameTable from '../components/GameElements/GameTable';
 
 type Message = {
   id: number;
@@ -19,6 +23,16 @@ type GameAction = {
   disabled?: boolean;
 };
 
+// Token type for the game table
+type Token = {
+  id: string;
+  position: [number, number, number];
+  color: string;
+  name: string;
+  size: number;
+  isPlayer: boolean;
+};
+
 export default function GamePage() {
   const { character } = useCharacter();
   const navigate = useNavigate();
@@ -27,6 +41,21 @@ export default function GamePage() {
   const [availableActions, setAvailableActions] = useState<GameAction[]>([]);
   const [gameState, setGameState] = useState<'intro' | 'exploring' | 'combat' | 'dialog'>('intro');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [showDiceRoller, setShowDiceRoller] = useState(false);
+  const [showGameTable, setShowGameTable] = useState(false);
+  const [lastDiceResult, setLastDiceResult] = useState<{ result: number; type: string } | null>(null);
+  const [gameTokens, setGameTokens] = useState<Token[]>([
+    {
+      id: 'player',
+      position: [0, 0, 0],
+      color: '#3498db',
+      name: character.name || 'Player',
+      size: 1,
+      isPlayer: true
+    }
+  ]);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Initial game setup
@@ -45,7 +74,7 @@ export default function GamePage() {
       {
         id: 2,
         sender: 'dm',
-        content: `Welcome, ${character.name || 'Adventurer'}! I am your AI Dungeon Master and will guide you through this adventure. The world awaits your heroic deeds.`,
+        content: `Welcome, ${character.name || 'Adventurer'}! I am your AI Dungeon Master and will guide you through this adventure. The world awaits your heroic deeds. Hold the "Speak" button to talk to me directly!`,
         timestamp: new Date(Date.now() + 1000).toISOString()
       },
       {
@@ -74,9 +103,26 @@ export default function GamePage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim() || isSendingMessage) return;
+  // Handle adding NPCs to the game table
+  const addEnemyToTable = (position: [number, number, number], name = 'Enemy') => {
+    const newToken: Token = {
+      id: `enemy_${Date.now()}`,
+      position,
+      color: '#e74c3c',
+      name,
+      size: 0.8,
+      isPlayer: false
+    };
+    
+    setGameTokens(prev => [...prev, newToken]);
+  };
+  
+  // Handle text or voice message
+  const handleSendMessage = async (e?: React.FormEvent, spokenMessage?: string) => {
+    if (e) e.preventDefault();
+    
+    const messageToSend = spokenMessage || inputMessage;
+    if (!messageToSend.trim() || isSendingMessage) return;
     
     setIsSendingMessage(true);
     playClick();
@@ -85,7 +131,7 @@ export default function GamePage() {
     const newMessage: Message = {
       id: messages.length + 1,
       sender: 'player',
-      content: inputMessage,
+      content: messageToSend,
       timestamp: new Date().toISOString()
     };
     
@@ -94,18 +140,18 @@ export default function GamePage() {
     
     // Simulate AI response
     setTimeout(() => {
-      // In a real implementation, this would call an AI service
+      // In a real implementation, this would call an AI service like GPT
       let aiResponse: Message;
       
       // Simple response logic based on keywords
-      if (inputMessage.toLowerCase().includes('hello') || inputMessage.toLowerCase().includes('hi')) {
+      if (messageToSend.toLowerCase().includes('hello') || messageToSend.toLowerCase().includes('hi')) {
         aiResponse = {
           id: messages.length + 2,
           sender: 'dm',
           content: `Greetings, ${character.name || 'Adventurer'}! How may I assist you on your journey?`,
           timestamp: new Date().toISOString()
         };
-      } else if (inputMessage.toLowerCase().includes('inn') || inputMessage.toLowerCase().includes('tavern')) {
+      } else if (messageToSend.toLowerCase().includes('inn') || messageToSend.toLowerCase().includes('tavern')) {
         aiResponse = {
           id: messages.length + 2,
           sender: 'dm',
@@ -118,6 +164,32 @@ export default function GamePage() {
           { id: 1, label: 'Enter the inn', description: 'Step inside The Sleeping Dragon' },
           { id: 2, label: 'Look around the village', description: 'Explore more of Meadowbrook first' }
         ]);
+      } else if (messageToSend.toLowerCase().includes('dice') || messageToSend.toLowerCase().includes('roll')) {
+        aiResponse = {
+          id: messages.length + 2,
+          sender: 'dm',
+          content: `You want to test your luck with a dice roll? Very well! I've opened the dice roller for you. Select the type of die you wish to roll.`,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Show dice roller
+        setShowDiceRoller(true);
+      } else if (messageToSend.toLowerCase().includes('combat') || messageToSend.toLowerCase().includes('battle') || messageToSend.toLowerCase().includes('fight')) {
+        aiResponse = {
+          id: messages.length + 2,
+          sender: 'dm',
+          content: `As you venture into the outskirts of the village, you notice movement in the tall grass. Three goblins emerge, brandishing crude weapons! I've opened the battle map so you can see the tactical situation.`,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Show game table and add enemies
+        setShowGameTable(true);
+        setGameState('combat');
+        setTimeout(() => {
+          addEnemyToTable([3, 0, 3], 'Goblin Scout');
+          addEnemyToTable([2, 0, 5], 'Goblin Warrior');
+          addEnemyToTable([4, 0, 4], 'Goblin Archer');
+        }, 1000);
       } else {
         aiResponse = {
           id: messages.length + 2,
@@ -130,6 +202,13 @@ export default function GamePage() {
       setMessages(prev => [...prev, aiResponse]);
       setIsSendingMessage(false);
     }, 1500);
+  };
+  
+  const handleVoiceResult = (transcript: string) => {
+    // Process the speech recognition result
+    if (transcript.trim()) {
+      handleSendMessage(undefined, transcript);
+    }
   };
   
   const handleAction = (actionId: number) => {
@@ -209,6 +288,64 @@ export default function GamePage() {
     }, 1500);
   };
   
+  const handleDiceRollComplete = (result: number, diceType: string) => {
+    setLastDiceResult({ result, type: diceType });
+    
+    // Add dice roll message
+    const diceMessage: Message = {
+      id: messages.length + 1,
+      sender: 'system',
+      content: `${character.name || 'You'} rolled a ${result} on a ${diceType}.`,
+      timestamp: new Date().toISOString()
+    };
+    
+    setMessages(prev => [...prev, diceMessage]);
+    
+    // Simulate DM response to the dice roll
+    setTimeout(() => {
+      let dmResponse: Message;
+      
+      if (result === 20 && diceType === 'd20') {
+        dmResponse = {
+          id: messages.length + 2,
+          sender: 'dm',
+          content: 'A critical success! Your skill and luck combine for an extraordinary outcome!',
+          timestamp: new Date().toISOString()
+        };
+      } else if (result === 1 && diceType === 'd20') {
+        dmResponse = {
+          id: messages.length + 2,
+          sender: 'dm',
+          content: 'A critical failure! Sometimes fate has other plans...',
+          timestamp: new Date().toISOString()
+        };
+      } else if (result >= 15) {
+        dmResponse = {
+          id: messages.length + 2,
+          sender: 'dm',
+          content: 'An excellent roll! Your expertise shines through.',
+          timestamp: new Date().toISOString()
+        };
+      } else if (result <= 5) {
+        dmResponse = {
+          id: messages.length + 2,
+          sender: 'dm',
+          content: 'A poor roll. Even the most skilled adventurers have their off moments.',
+          timestamp: new Date().toISOString()
+        };
+      } else {
+        dmResponse = {
+          id: messages.length + 2,
+          sender: 'dm',
+          content: 'A fair roll. Your attempt is neither exceptional nor poor.',
+          timestamp: new Date().toISOString()
+        };
+      }
+      
+      setMessages(prev => [...prev, dmResponse]);
+    }, 1000);
+  };
+  
   const handleExitGame = () => {
     if (confirm('Are you sure you want to exit? Your progress will be saved.')) {
       // Save game state
@@ -252,11 +389,22 @@ export default function GamePage() {
         </div>
         
         <div className="game-controls flex gap-3">
+          <Button 
+            size="sm" 
+            variant={showDiceRoller ? "primary" : "ghost"} 
+            onClick={() => setShowDiceRoller(!showDiceRoller)}
+          >
+            Dice
+          </Button>
+          <Button 
+            size="sm" 
+            variant={showGameTable ? "primary" : "ghost"} 
+            onClick={() => setShowGameTable(!showGameTable)}
+          >
+            Battle Map
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => alert('Character sheet opens here')}>
             Character
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => alert('Inventory opens here')}>
-            Inventory
           </Button>
           <Button size="sm" variant="secondary" onClick={handleExitGame}>
             Save & Exit
@@ -264,8 +412,33 @@ export default function GamePage() {
         </div>
       </header>
       
+      {/* Main Game View */}
+      {showGameTable && (
+        <div className="game-table-container" style={{ height: '60vh', padding: '10px' }}>
+          <Panel className="w-full h-full flex flex-col p-4" style={{
+            backdropFilter: 'blur(10px)',
+          }}>
+            <GameTable 
+              tokens={gameTokens}
+              onTokenMove={(tokenId, newPosition) => {
+                setGameTokens(prev => 
+                  prev.map(token => 
+                    token.id === tokenId ? { ...token, position: newPosition } : token
+                  )
+                );
+              }}
+              onAddToken={(position) => {
+                addEnemyToTable(position);
+              }}
+              tableSize={[30, 30]}
+              gridSize={1}
+            />
+          </Panel>
+        </div>
+      )}
+      
       {/* Game Content Area */}
-      <div className="game-content-area flex-1 flex p-4 gap-4 overflow-hidden">
+      <div className={`game-content-area flex-1 flex p-4 gap-4 overflow-hidden ${showGameTable ? 'h-[40vh]' : 'h-full'}`}>
         {/* Left Panel - Game Narrative */}
         <Panel className="narrative-panel flex-1 flex flex-col" style={{
           backdropFilter: 'blur(10px)',
@@ -285,8 +458,9 @@ export default function GamePage() {
                     </div>
                   ) : message.sender === 'dm' ? (
                     <div className="dm-message">
-                      <div className="dm-header text-gold text-xs mb-1 font-title">
-                        Dungeon Master
+                      <div className="dm-header flex justify-between text-gold text-xs mb-1 font-title">
+                        <span>Dungeon Master</span>
+                        <TextToSpeech text={message.content} />
                       </div>
                       <div className="dm-content bg-gray-900 bg-opacity-70 p-3 rounded-md font-body">
                         {message.content}
@@ -310,20 +484,28 @@ export default function GamePage() {
             </div>
           </div>
           
-          {/* Input Area */}
+          {/* Input Area with Voice Recognition */}
           <div className="input-area p-4 border-t border-gray-800">
+            <div className="flex gap-2 mb-4">
+              <SpeechRecognition 
+                onSpeechResult={handleVoiceResult} 
+                isListening={isListening}
+                setIsListening={setIsListening}
+              />
+            </div>
+            
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <input
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="What would you like to do?"
+                placeholder="Type your message or use voice..."
                 className="flex-1 bg-gray-900 text-white border border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-light"
-                disabled={isSendingMessage}
+                disabled={isSendingMessage || isListening}
               />
               <Button 
                 type="submit" 
-                disabled={isSendingMessage || !inputMessage.trim()}
+                disabled={isSendingMessage || isListening || !inputMessage.trim()}
               >
                 {isSendingMessage ? 'Sending...' : 'Send'}
               </Button>
@@ -331,47 +513,72 @@ export default function GamePage() {
           </div>
         </Panel>
         
-        {/* Right Panel - Game Actions and Info */}
+        {/* Right Panel - Game Actions and Dice */}
         <Panel className="actions-panel w-80 flex flex-col" style={{
           backdropFilter: 'blur(10px)',
         }}>
-          <div className="p-4 border-b border-gray-800">
-            <h3 className="text-gold font-title mb-2">Available Actions</h3>
-            <div className="actions-list flex flex-col gap-2">
-              {availableActions.map(action => (
-                <button
-                  key={action.id}
-                  onClick={() => handleAction(action.id)}
-                  disabled={action.disabled}
-                  className="text-left bg-gray-900 bg-opacity-70 hover:bg-opacity-90 p-3 rounded-md transition-all text-white border border-gray-800 hover:border-primary-light"
+          {showDiceRoller ? (
+            <div className="p-4 overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-gold font-title">Dice Roller</h3>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setShowDiceRoller(false)}
                 >
-                  <div className="font-title text-gold">{action.label}</div>
-                  {action.description && (
-                    <div className="text-sm text-gray-300 mt-1">{action.description}</div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="current-context p-4 border-b border-gray-800">
-            <h3 className="text-gold font-title mb-2">Current Location</h3>
-            <p className="text-gray-300 text-sm">Meadowbrook Village Entrance</p>
-            <p className="text-gray-400 text-xs mt-1">Time: Evening</p>
-          </div>
-          
-          <div className="party-status p-4">
-            <h3 className="text-gold font-title mb-2">Party Status</h3>
-            <div className="party-member bg-gray-900 bg-opacity-50 p-2 rounded-md">
-              <div className="flex justify-between items-center">
-                <span className="text-white">{character.name || 'Adventurer'}</span>
-                <span className="text-green-500 text-sm">Healthy</span>
+                  Close
+                </Button>
               </div>
-              <div className="health-bar w-full h-2 bg-gray-700 rounded-full mt-1">
-                <div className="h-full bg-green-600 rounded-full" style={{ width: '100%' }}></div>
-              </div>
+              
+              <DiceRoller onRollComplete={handleDiceRollComplete} />
+              
+              {lastDiceResult && (
+                <div className="mt-4 text-center">
+                  <p>Last Roll: <span className="text-gold font-bold">{lastDiceResult.result}</span> on a {lastDiceResult.type}</p>
+                </div>
+              )}
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="p-4 border-b border-gray-800 overflow-y-auto">
+                <h3 className="text-gold font-title mb-2">Available Actions</h3>
+                <div className="actions-list flex flex-col gap-2">
+                  {availableActions.map(action => (
+                    <button
+                      key={action.id}
+                      onClick={() => handleAction(action.id)}
+                      disabled={action.disabled}
+                      className="text-left bg-gray-900 bg-opacity-70 hover:bg-opacity-90 p-3 rounded-md transition-all text-white border border-gray-800 hover:border-primary-light"
+                    >
+                      <div className="font-title text-gold">{action.label}</div>
+                      {action.description && (
+                        <div className="text-sm text-gray-300 mt-1">{action.description}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="current-context p-4 border-b border-gray-800">
+                <h3 className="text-gold font-title mb-2">Current Location</h3>
+                <p className="text-gray-300 text-sm">Meadowbrook Village Entrance</p>
+                <p className="text-gray-400 text-xs mt-1">Time: Evening</p>
+              </div>
+              
+              <div className="party-status p-4">
+                <h3 className="text-gold font-title mb-2">Party Status</h3>
+                <div className="party-member bg-gray-900 bg-opacity-50 p-2 rounded-md">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">{character.name || 'Adventurer'}</span>
+                    <span className="text-green-500 text-sm">Healthy</span>
+                  </div>
+                  <div className="health-bar w-full h-2 bg-gray-700 rounded-full mt-1">
+                    <div className="h-full bg-green-600 rounded-full" style={{ width: '100%' }}></div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </Panel>
       </div>
     </div>
