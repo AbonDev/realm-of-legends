@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <!-- Dark gradient background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#11151B" />
+      <stop offset="100%" stop-color="#1D2730" />
+    </linearGradient>
+    
+    <!-- Radial glow for the portal -->
+    <radialGradient id="portalGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#D1AD73" stop-opacity="0.4" />
+      <stop offset="70%" stop-color="#8B6B3D" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#111820" stop-opacity="0" />
+    </radialGradient>
+    
+    <!-- Stars pattern -->
+    <pattern id="starsPattern" x="0" y="0" width="600" height="600" patternUnits="userSpaceOnUse">
+      <!-- Small stars -->
+      <circle cx="50" cy="50" r="0.8" fill="white" opacity="0.4" />
+      <circle cx="120" cy="190" r="0.6" fill="white" opacity="0.5" />
+      <circle cx="500" cy="155" r="0.7" fill="white" opacity="0.3" />
+      <circle cx="350" cy="290" r="0.9" fill="white" opacity="0.6" />
+      <circle cx="430" cy="420" r="0.7" fill="white" opacity="0.4" />
+      <circle cx="210" cy="540" r="0.8" fill="white" opacity="0.3" />
+      <circle cx="520" cy="360" r="0.6" fill="white" opacity="0.5" />
+      <circle cx="180" cy="370" r="0.8" fill="white" opacity="0.4" />
+      <circle cx="280" cy="50" r="0.6" fill="white" opacity="0.3" />
+      <circle cx="300" cy="500" r="0.9" fill="white" opacity="0.6" />
+      <circle cx="70" cy="300" r="0.7" fill="white" opacity="0.5" />
+      
+      <!-- Medium stars -->
+      <circle cx="230" cy="120" r="1.3" fill="white" opacity="0.6" />
+      <circle cx="400" cy="210" r="1.2" fill="white" opacity="0.7" />
+      <circle cx="150" cy="450" r="1.4" fill="white" opacity="0.5" />
+      <circle cx="390" cy="380" r="1.2" fill="white" opacity="0.6" />
+      <circle cx="500" cy="500" r="1.3" fill="white" opacity="0.7" />
+      
+      <!-- Large stars with glow -->
+      <circle cx="100" cy="200" r="1.8" fill="white" opacity="0.8" />
+      <circle cx="100" cy="200" r="3" fill="white" opacity="0.3" />
+      
+      <circle cx="450" cy="75" r="1.8" fill="white" opacity="0.8" />
+      <circle cx="450" cy="75" r="3" fill="white" opacity="0.3" />
+      
+      <circle cx="250" cy="280" r="1.8" fill="white" opacity="0.8" />
+      <circle cx="250" cy="280" r="3" fill="white" opacity="0.3" />
+    </pattern>
+  </defs>
+  
+  <!-- Main background -->
+  <rect width="100%" height="100%" fill="url(#bgGradient)" />
+  
+  <!-- Stars pattern -->
+  <rect width="100%" height="100%" fill="url(#starsPattern)" />
+  
+  <!-- Fantasy mountains silhouette -->
+  <path d="M0,1080 L0,750 L120,830 L200,780 L300,840 L420,750 L520,800 L640,750 L750,830 L880,750 L950,790 L1050,740 L1170,830 L1250,780 L1380,850 L1480,780 L1600,830 L1720,760 L1820,800 L1920,750 L1920,1080 Z" fill="#141E2A" opacity="0.8" />
+  
+  <path d="M0,1080 L0,800 L100,860 L180,820 L280,870 L400,790 L500,830 L600,790 L700,860 L800,790 L900,820 L1000,780 L1100,860 L1200,810 L1300,880 L1400,810 L1500,870 L1600,800 L1700,840 L1800,790 L1920,800 L1920,1080 Z" fill="#0E151F" opacity="0.9" />
+  
+  <!-- Mysterious portal/archway in the center -->
+  <circle cx="960" cy="500" r="200" fill="url(#portalGlow)" opacity="0.8" />
+  
+  <!-- Decorative runes/symbols -->
+  <g opacity="0.6" stroke="#D1AD73" stroke-width="1.5" fill="none">
+    <circle cx="960" cy="500" r="180" />
+    <circle cx="960" cy="500" r="190" stroke-dasharray="10,15" />
+    <circle cx="960" cy="500" r="170" stroke-dasharray="5,10" />
+    
+    <!-- Rune symbols at cardinal points -->
+    <path d="M960,310 L960,330 M950,320 L970,320" stroke-width="2" />
+    <path d="M960,670 L960,690 M950,680 L970,680" stroke-width="2" />
+    <path d="M770,500 L790,500 M780,490 L780,510" stroke-width="2" />
+    <path d="M1130,500 L1150,500 M1140,490 L1140,510" stroke-width="2" />
+    
+    <!-- Additional arcane symbols -->
+    <path d="M870,410 L890,390 M890,410 L870,390" stroke-width="1.5" />
+    <path d="M1030,410 L1050,390 M1050,410 L1030,390" stroke-width="1.5" />
+    <path d="M870,590 L890,610 M890,590 L870,610" stroke-width="1.5" />
+    <path d="M1030,590 L1050,610 M1050,590 L1030,610" stroke-width="1.5" />
+  </g>
+  
+  <!-- Text "Character Creation" - implemented as a path to avoid font issues -->
+  <g transform="translate(700, 180)">
+    <path d="M36,0 C50,0 60,6 60,20 C60,34 50,40 36,40 L20,40 L20,60 L0,60 L0,0 L36,0 Z M36,20 L20,20 L20,40 L36,40 C40,40 42,38 42,34 L42,26 C42,22 40,20 36,20 Z" fill="#D1AD73" opacity="0.9" />
+    <path d="M90,0 L90,60 L70,60 L70,0 L90,0 Z" fill="#D1AD73" opacity="0.9" transform="translate(60, 0)" />
+    <path d="M70,0 L110,0 L110,20 L90,20 L90,60 L70,60 L70,0 Z" fill="#D1AD73" opacity="0.9" transform="translate(120, 0)" />
+    <path d="M0,0 L40,0 L40,20 L20,20 L20,40 L40,40 L40,60 L0,60 L0,40 L20,40 L20,20 L0,20 L0,0 Z" fill="#D1AD73" opacity="0.9" transform="translate(210, 0)" />
+    <path d="M70,0 L110,0 L110,20 L90,20 L90,60 L70,60 L70,0 Z" fill="#D1AD73" opacity="0.9" transform="translate(260, 0)" />
+  </g>
+</svg>

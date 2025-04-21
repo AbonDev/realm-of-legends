@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <!-- Definitions for gradients and patterns -->
+  <defs>
+    <!-- Main background gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#111820" />
+      <stop offset="100%" stop-color="#1E2C39" />
+    </linearGradient>
+    
+    <!-- Ambient light from windows -->
+    <radialGradient id="windowLight1" cx="20%" cy="30%" r="20%" fx="20%" fy="30%">
+      <stop offset="0%" stop-color="#D1AD73" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#111820" stop-opacity="0" />
+    </radialGradient>
+    
+    <radialGradient id="windowLight2" cx="80%" cy="40%" r="25%" fx="80%" fy="40%">
+      <stop offset="0%" stop-color="#8B9CB3" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#111820" stop-opacity="0" />
+    </radialGradient>
+    
+    <!-- Texture pattern for subtle details -->
+    <pattern id="noisePattern" width="100" height="100" patternUnits="userSpaceOnUse" patternTransform="scale(0.5)">
+      <rect width="100%" height="100%" fill="#111820" />
+      <rect x="0" y="0" width="1" height="1" fill="#D1AD73" opacity="0.03" />
+      <rect x="40" y="10" width="1" height="1" fill="#D1AD73" opacity="0.04" />
+      <rect x="25" y="30" width="1" height="1" fill="#D1AD73" opacity="0.05" />
+      <rect x="70" y="45" width="1" height="1" fill="#D1AD73" opacity="0.03" />
+      <rect x="90" y="70" width="1" height="1" fill="#D1AD73" opacity="0.04" />
+      <rect x="50" y="80" width="1" height="1" fill="#D1AD73" opacity="0.05" />
+      <rect x="10" y="90" width="1" height="1" fill="#D1AD73" opacity="0.03" />
+      <rect x="30" y="60" width="1" height="1" fill="#D1AD73" opacity="0.04" />
+      <rect x="60" y="20" width="1" height="1" fill="#D1AD73" opacity="0.03" />
+    </pattern>
+  </defs>
+  
+  <!-- Main background -->
+  <rect width="100%" height="100%" fill="url(#bgGradient)" />
+  
+  <!-- Subtle texture overlay -->
+  <rect width="100%" height="100%" fill="url(#noisePattern)" opacity="0.5" />
+  
+  <!-- Ambient light from windows -->
+  <rect width="100%" height="100%" fill="url(#windowLight1)" />
+  <rect width="100%" height="100%" fill="url(#windowLight2)" />
+  
+  <!-- Fantasy gothic architecture - stone arches -->
+  <path d="M0,0 L0,1080 L1920,1080 L1920,0 Z" fill="none" stroke="#362D1E" stroke-width="60" stroke-opacity="0.2" />
+  <path d="M0,60 L0,1020 L1920,1020 L1920,60 Z" fill="none" stroke="#362D1E" stroke-width="20" stroke-opacity="0.15" />
+  
+  <!-- Decorative columns -->
+  <g opacity="0.3">
+    <!-- Left columns -->
+    <rect x="100" y="0" width="40" height="1080" fill="#2A2016" />
+    <rect x="105" y="0" width="30" height="1080" fill="#362D1E" />
+    
+    <rect x="300" y="0" width="40" height="1080" fill="#2A2016" />
+    <rect x="305" y="0" width="30" height="1080" fill="#362D1E" />
+    
+    <rect x="500" y="0" width="40" height="1080" fill="#2A2016" />
+    <rect x="505" y="0" width="30" height="1080" fill="#362D1E" />
+    
+    <!-- Right columns -->
+    <rect x="1380" y="0" width="40" height="1080" fill="#2A2016" />
+    <rect x="1385" y="0" width="30" height="1080" fill="#362D1E" />
+    
+    <rect x="1580" y="0" width="40" height="1080" fill="#2A2016" />
+    <rect x="1585" y="0" width="30" height="1080" fill="#362D1E" />
+    
+    <rect x="1780" y="0" width="40" height="1080" fill="#2A2016" />
+    <rect x="1785" y="0" width="30" height="1080" fill="#362D1E" />
+  </g>
+  
+  <!-- Stone floor with tiles -->
+  <path d="M0,820 L1920,820 L1920,1080 L0,1080 Z" fill="#1A1E26" opacity="0.5" />
+  
+  <!-- Floor tile pattern -->
+  <g opacity="0.3">
+    <line x1="0" y1="870" x2="1920" y2="870" stroke="#362D1E" stroke-width="2" />
+    <line x1="0" y1="920" x2="1920" y2="920" stroke="#362D1E" stroke-width="2" />
+    <line x1="0" y1="970" x2="1920" y2="970" stroke="#362D1E" stroke-width="2" />
+    <line x1="0" y1="1020" x2="1920" y2="1020" stroke="#362D1E" stroke-width="2" />
+    
+    <line x1="100" y1="820" x2="100" y2="1080" stroke="#362D1E" stroke-width="2" />
+    <line x1="300" y1="820" x2="300" y2="1080" stroke="#362D1E" stroke-width="2" />
+    <line x1="500" y1="820" x2="500" y2="1080" stroke="#362D1E" stroke-width="2" />
+    <line x1="700" y1="820" x2="700" y2="1080" stroke="#362D1E" stroke-width="2" />
+    <line x1="900" y1="820" x2="900" y2="1080" stroke="#362D1E" stroke-width="2" />
+    <line x1="1100" y1="820" x2="1100" y2="1080" stroke="#362D1E" stroke-width="2" />
+    <line x1="1300" y1="820" x2="1300" y2="1080" stroke="#362D1E" stroke-width="2" />
+    <line x1="1500" y1="820" x2="1500" y2="1080" stroke="#362D1E" stroke-width="2" />
+    <line x1="1700" y1="820" x2="1700" y2="1080" stroke="#362D1E" stroke-width="2" />
+    <line x1="1900" y1="820" x2="1900" y2="1080" stroke="#362D1E" stroke-width="2" />
+  </g>
+  
+  <!-- Decorative fantasy elements -->
+  <g opacity="0.15">
+    <!-- Center ceiling rose/medallion -->
+    <circle cx="960" cy="150" r="100" fill="none" stroke="#D1AD73" stroke-width="2" />
+    <circle cx="960" cy="150" r="80" fill="none" stroke="#D1AD73" stroke-width="1.5" />
+    <circle cx="960" cy="150" r="60" fill="none" stroke="#D1AD73" stroke-width="1" />
+    
+    <!-- Ambient dust particles -->
+    <circle cx="700" cy="300" r="1" fill="#D1AD73" opacity="0.7" />
+    <circle cx="750" cy="350" r="0.8" fill="#D1AD73" opacity="0.7" />
+    <circle cx="800" cy="250" r="1.2" fill="#D1AD73" opacity="0.6" />
+    <circle cx="850" cy="400" r="0.9" fill="#D1AD73" opacity="0.7" />
+    <circle cx="900" cy="320" r="1" fill="#D1AD73" opacity="0.6" />
+    
+    <circle cx="1000" cy="280" r="1" fill="#D1AD73" opacity="0.7" />
+    <circle cx="1050" cy="350" r="0.8" fill="#D1AD73" opacity="0.6" />
+    <circle cx="1100" cy="300" r="1.2" fill="#D1AD73" opacity="0.7" />
+    <circle cx="1150" cy="400" r="0.9" fill="#D1AD73" opacity="0.6" />
+    <circle cx="1200" cy="320" r="1" fill="#D1AD73" opacity="0.7" />
+  </g>
+  
+  <!-- Fantasy magical sigils on the floor -->
+  <g transform="translate(960, 950) rotate(0)" opacity="0.07">
+    <circle cx="0" cy="0" r="200" fill="none" stroke="#D1AD73" stroke-width="2" />
+    <circle cx="0" cy="0" r="180" fill="none" stroke="#D1AD73" stroke-width="1" stroke-dasharray="10,5" />
+    <path d="M0,-150 L0,150 M-150,0 L150,0" stroke="#D1AD73" stroke-width="1" />
+    <path d="M-106,-106 L106,106 M-106,106 L106,-106" stroke="#D1AD73" stroke-width="1" />
+    
+    <!-- Runic symbols -->
+    <path d="M40,-120 L60,-120 M50,-130 L50,-110" stroke="#D1AD73" stroke-width="1.5" />
+    <path d="M-40,120 L-60,120 M-50,110 L-50,130" stroke="#D1AD73" stroke-width="1.5" />
+    <path d="M-120,-40 L-120,-60 M-130,-50 L-110,-50" stroke="#D1AD73" stroke-width="1.5" />
+    <path d="M120,40 L120,60 M110,50 L130,50" stroke="#D1AD73" stroke-width="1.5" />
+  </g>
+</svg>

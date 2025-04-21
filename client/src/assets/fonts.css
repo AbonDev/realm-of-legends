@@ -1,0 +1,101 @@
+/* Custom Fonts for Fantasy UI */
+
+/* Title fonts */
+.font-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+/* Body text fonts */
+.font-body {
+  font-family: 'EB Garamond', serif;
+  font-weight: 400;
+}
+
+/* Accent fonts for quotes, descriptions */
+.font-accent {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+}
+
+/* Fantasy UI Typography Styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--header-font);
+  color: var(--text-gold);
+  margin-top: 0;
+}
+
+h1 {
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  font-size: 1.75rem;
+  letter-spacing: 0.03em;
+  margin-bottom: 1.25rem;
+}
+
+h3 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+h4 {
+  font-size: 1.15rem;
+  margin-bottom: 0.75rem;
+}
+
+p {
+  font-family: var(--body-font);
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.text-gold {
+  color: var(--text-gold);
+}
+
+.text-accent {
+  font-family: var(--body-font);
+  font-style: italic;
+}
+
+/* Text shadows for better readability on dark backgrounds */
+.text-shadow {
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* Fancy first letter style for story text */
+.first-letter::first-letter {
+  font-size: 1.5em;
+  font-family: var(--header-font);
+  color: var(--text-gold);
+  float: left;
+  margin: 0 0.1em 0 0;
+  line-height: 0.8;
+}
+
+/* Scroll elements with fancy shadows */
+.scroll-text {
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-dark) var(--background-dark);
+}
+
+.scroll-text::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-text::-webkit-scrollbar-track {
+  background: var(--background-dark);
+}
+
+.scroll-text::-webkit-scrollbar-thumb {
+  background-color: var(--primary-dark);
+  border-radius: 6px;
+}
