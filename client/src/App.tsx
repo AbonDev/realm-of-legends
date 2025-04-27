@@ -12,6 +12,7 @@ import MainMenuPage from "./pages/MainMenuPage";
 import CharacterCreationPage from "./pages/CharacterCreationPage";
 import GamePage from "./pages/GamePage";
 import NotFound from "./pages/not-found";
+import PaginaDoAugusto from "./pages/PaginaDoAugusto";
 
 // Main App component
 function App() {
@@ -60,11 +61,12 @@ function App() {
 
   // Protected route component
   const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-    if (!isLoggedIn) {
-      return <Navigate to="/" replace />;
-    }
+    // if (!isLoggedIn) {
+    //   return <Navigate to="/" replace />;
+    // }
     return children;
   };
+
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -106,6 +108,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <GamePage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/rota-do-augusto" 
+              element={
+                <ProtectedRoute>
+                  <PaginaDoAugusto />
                 </ProtectedRoute>
               } 
             />
