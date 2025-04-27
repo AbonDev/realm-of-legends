@@ -2,12 +2,90 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import fetch from "node-fetch";
+
+// SUA NOVA API KEY AQUI
+const apiKey = "pegar no particular comigo";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Character routes prefix with /api
   const apiRouter = app.route("/api");
-  
-  // Get all character templates
+
+  // 🔥 ROTA 1: Perguntar para o GPT-4
+  app.post("/api/ask-gpt", async (req, res) => {
+    try {
+      const { message } = req.body;
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            { role: "system", content: "Você é um Mestre de Masmorra narrando aventuras de fantasia medieval D&D 5, de forma imersiva, respondendo de forma realista." },
+            { role: "user", content: message },
+          ],
+          temperature: 0.7,
+          max_tokens: 100,
+        }),
+      });
+
+      const bodyText = await response.text();
+
+      if (!response.ok) {
+        console.error("Erro da OpenAI:", bodyText);
+        return res.status(500).json({ message: "Erro ao consultar Dungeon Master", detail: bodyText });
+      }
+
+      const data = JSON.parse(bodyText);
+      res.json(data);
+    } catch (error) {
+      console.error("Erro geral:", error);
+      res.status(500).json({ message: "Erro geral no servidor", error: String(error) });
+    }
+  });
+
+  app.post("/api/tts", async (req, res) => {
+    try {
+      const { text } = req.body;
+
+      if (!text) {
+        return res.status(400).json({ message: "Texto ausente no pedido." });
+      }
+
+      const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "tts-1",
+          input: text,
+          voice: "ash", 
+          response_format: "mp3",
+        }),
+      });
+
+      if (!ttsResponse.ok) {
+        const errorText = await ttsResponse.text();
+        console.error("Erro no TTS da OpenAI:", errorText);
+        return res.status(500).json({ message: "Erro ao gerar voz.", detail: errorText });
+      }
+
+      const audioBuffer = await ttsResponse.arrayBuffer();
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.send(Buffer.from(audioBuffer));
+    } catch (error) {
+      console.error("Erro interno no /api/tts:", error);
+      res.status(500).json({ message: "Erro interno no servidor TTS", error: String(error) });
+    }
+  });
+
+  // 🔵 SUAS ROTAS EXISTENTES CONTINUAM NORMALMENTE:
+
   app.get("/api/characters", async (req, res) => {
     try {
       const characters = await storage.getAllCharacters();
@@ -17,35 +95,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get a character by ID
   app.get("/api/characters/:id", async (req, res) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid character ID" });
       }
-      
+
       const character = await storage.getCharacter(id);
       if (!character) {
         return res.status(404).json({ message: "Character not found" });
       }
-      
+
       res.json(character);
     } catch (error) {
       res.status(500).json({ message: "Failed to get character", error: String(error) });
     }
   });
 
-  // Create a new character
   app.post("/api/characters", async (req, res) => {
     try {
       const character = req.body;
-      
-      // Basic validation
+
       if (!character.name || !character.race || !character.class) {
         return res.status(400).json({ message: "Missing required character fields" });
       }
-      
+
       const savedCharacter = await storage.createCharacter(character);
       res.status(201).json(savedCharacter);
     } catch (error) {
@@ -53,212 +128,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update a character
   app.put("/api/characters/:id", async (req, res) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid character ID" });
       }
-      
+
       const character = req.body;
       const updatedCharacter = await storage.updateCharacter(id, character);
       if (!updatedCharacter) {
         return res.status(404).json({ message: "Character not found" });
       }
-      
+
       res.json(updatedCharacter);
     } catch (error) {
       res.status(500).json({ message: "Failed to update character", error: String(error) });
     }
   });
 
-  // Delete a character
   app.delete("/api/characters/:id", async (req, res) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid character ID" });
       }
-      
+
       const success = await storage.deleteCharacter(id);
       if (!success) {
         return res.status(404).json({ message: "Character not found" });
       }
-      
+
       res.status(204).end();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete character", error: String(error) });
-    }
-  });
-
-  // Get game data routes
-  app.get("/api/game-data/races", (req, res) => {
-    try {
-      // We'll return this from in-memory data rather than database
-      const races = [
-        {
-          id: "human",
-          name: "Human",
-          description: "Versatile and ambitious, humans are the most common folk in the realms.",
-          attributeModifiers: { might: 1, finesse: 1, constitution: 1, intellect: 1, wisdom: 1, presence: 1 },
-          abilities: ["Adaptability", "Versatile"],
-          traits: ["Quick Learner", "Ambitious"]
-        },
-        {
-          id: "elf",
-          name: "Elf",
-          description: "Graceful and long-lived, elves are magical beings with a strong connection to nature.",
-          attributeModifiers: { finesse: 2, intellect: 1, wisdom: 1 },
-          abilities: ["Keen Senses", "Fey Ancestry"],
-          traits: ["Trance", "Graceful"]
-        },
-        {
-          id: "dwarf",
-          name: "Dwarf",
-          description: "Sturdy and traditional, dwarves are known for their craftsmanship and resilience.",
-          attributeModifiers: { constitution: 2, might: 1, wisdom: 1 },
-          abilities: ["Dwarven Resilience", "Stonecunning"],
-          traits: ["Darkvision", "Craftsmanship"]
-        },
-        {
-          id: "dragonborn",
-          name: "Dragonborn",
-          description: "Proud warriors with draconic heritage, capable of breathing elemental energy.",
-          attributeModifiers: { might: 2, presence: 1 },
-          abilities: ["Breath Weapon", "Draconic Resistance"],
-          traits: ["Imposing Presence", "Honor-bound"]
-        },
-        {
-          id: "halfling",
-          name: "Halfling",
-          description: "Small but brave folk, known for their luck and tendency to avoid danger.",
-          attributeModifiers: { finesse: 2, wisdom: 1 },
-          abilities: ["Lucky", "Nimble"],
-          traits: ["Brave", "Hospitable"]
-        }
-      ];
-      
-      res.json(races);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get races data", error: String(error) });
-    }
-  });
-
-  app.get("/api/game-data/classes", (req, res) => {
-    try {
-      const classes = [
-        {
-          id: "warrior",
-          name: "Warrior",
-          description: "Masters of combat with exceptional skill at arms and armor.",
-          primaryAttribute: "might",
-          abilities: [
-            { name: "Combat Prowess", description: "Gain advantage on attack rolls once per combat.", level: 1 },
-            { name: "Defensive Stance", description: "Reduce incoming damage by 3 as a reaction.", level: 2 }
-          ],
-          startingEquipment: ["Longsword", "Shield", "Chainmail", "Explorer's Pack"]
-        },
-        {
-          id: "mage",
-          name: "Mage",
-          description: "Scholars of the arcane who can bend reality with powerful spells.",
-          primaryAttribute: "intellect",
-          abilities: [
-            { name: "Arcane Recovery", description: "Regain some spell slots during a short rest.", level: 1 },
-            { name: "Elemental Attunement", description: "Choose one element to enhance related spells.", level: 2 }
-          ],
-          startingEquipment: ["Spellbook", "Staff", "Scholar's Pack", "Arcane Focus"]
-        },
-        {
-          id: "rogue",
-          name: "Rogue",
-          description: "Skilled infiltrators and precise strikers who excel at deception and stealth.",
-          primaryAttribute: "finesse",
-          abilities: [
-            { name: "Sneak Attack", description: "Deal extra damage when you have advantage on attack rolls.", level: 1 },
-            { name: "Uncanny Dodge", description: "Halve damage from an attack as a reaction.", level: 2 }
-          ],
-          startingEquipment: ["Shortsword", "Dagger", "Leather Armor", "Thieves' Tools"]
-        },
-        {
-          id: "cleric",
-          name: "Cleric",
-          description: "Divine spellcasters who channel the power of their deity to heal and protect.",
-          primaryAttribute: "wisdom",
-          abilities: [
-            { name: "Divine Channel", description: "Call upon your deity's power to create magical effects.", level: 1 },
-            { name: "Healing Touch", description: "Your healing spells are more effective.", level: 2 }
-          ],
-          startingEquipment: ["Mace", "Shield", "Holy Symbol", "Healer's Kit"]
-        },
-        {
-          id: "ranger",
-          name: "Ranger",
-          description: "Wilderness experts who blend martial prowess with nature magic.",
-          primaryAttribute: "finesse",
-          abilities: [
-            { name: "Natural Explorer", description: "You are particularly adept at traveling through one type of terrain.", level: 1 },
-            { name: "Hunter's Mark", description: "Mark a creature to deal extra damage to it.", level: 2 }
-          ],
-          startingEquipment: ["Longbow", "Quiver of Arrows", "Two Shortswords", "Explorer's Pack"]
-        }
-      ];
-      
-      res.json(classes);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get classes data", error: String(error) });
-    }
-  });
-
-  app.get("/api/game-data/backgrounds", (req, res) => {
-    try {
-      const backgrounds = [
-        {
-          id: "noble",
-          name: "Noble",
-          description: "You were born into a family of power and privilege.",
-          skillBonuses: ["Etiquette", "History"],
-          traits: ["Influential Connections", "Refined Manners"],
-          suggestedCharacteristics: ["Arrogant", "Honorable", "Ambitious"]
-        },
-        {
-          id: "scholar",
-          name: "Scholar",
-          description: "You spent years studying in libraries and universities.",
-          skillBonuses: ["Arcana", "Investigation"],
-          traits: ["Comprehensive Education", "Research Skills"],
-          suggestedCharacteristics: ["Curious", "Analytical", "Detached"]
-        },
-        {
-          id: "soldier",
-          name: "Soldier",
-          description: "You served in an army or militia, learning the art of war.",
-          skillBonuses: ["Athletics", "Intimidation"],
-          traits: ["Military Rank", "Tactical Training"],
-          suggestedCharacteristics: ["Disciplined", "Loyal", "Hardened"]
-        },
-        {
-          id: "criminal",
-          name: "Criminal",
-          description: "You lived a life outside the law, whether by choice or necessity.",
-          skillBonuses: ["Deception", "Stealth"],
-          traits: ["Criminal Contact", "Streetwise"],
-          suggestedCharacteristics: ["Suspicious", "Resourceful", "Secretive"]
-        },
-        {
-          id: "outlander",
-          name: "Outlander",
-          description: "You grew up in the wilds, far from civilization.",
-          skillBonuses: ["Survival", "Nature"],
-          traits: ["Wanderer", "Hunter-Gatherer"],
-          suggestedCharacteristics: ["Independent", "Wary of Civilization", "Connected to Nature"]
-        }
-      ];
-      
-      res.json(backgrounds);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get backgrounds data", error: String(error) });
     }
   });
 
