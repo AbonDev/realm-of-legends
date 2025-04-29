@@ -4,13 +4,12 @@ import { storage } from "./storage";
 import { z } from "zod";
 import fetch from "node-fetch";
 
-// SUA NOVA API KEY AQUI
 const apiKey = "Pegar comigo";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = app.route("/api");
 
-  // 🔥 ROTA 1: Perguntar para o GPT-4
+  // Perguntar para o GPT-4
   app.post("/api/ask-gpt", async (req, res) => {
     try {
       const { message } = req.body;
@@ -83,8 +82,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Erro interno no servidor TTS", error: String(error) });
     }
   });
-
-  // 🔵 SUAS ROTAS EXISTENTES CONTINUAM NORMALMENTE:
 
   app.get("/api/characters", async (req, res) => {
     try {

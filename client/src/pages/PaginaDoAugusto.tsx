@@ -1,7 +1,5 @@
 import React, { useState, useRef } from "react";
 
-// 🔥 CORREÇÃO: Não tentar usar tipo SpeechRecognition diretamente
-// Vamos usar o "typeof window.SpeechRecognition" para tipar certo
 declare global {
   interface Window {
     SpeechRecognition: any;
