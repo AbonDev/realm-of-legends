@@ -5,7 +5,7 @@ import { z } from "zod";
 import fetch from "node-fetch";
 
 // SUA NOVA API KEY AQUI
-const apiKey = "pegar no particular comigo";
+const apiKey = "Pegar comigo";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = app.route("/api");
