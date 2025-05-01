@@ -4,7 +4,11 @@ interface AudioState {
   backgroundMusic: HTMLAudioElement | null;
   hitSound: HTMLAudioElement | null;
   successSound: HTMLAudioElement | null;
+  
+  // State flags
   isMuted: boolean;
+  isMusicPlaying: boolean;
+  areSoundEffectsEnabled: boolean;
   
   // Setter functions
   setBackgroundMusic: (music: HTMLAudioElement) => void;
@@ -13,6 +17,8 @@ interface AudioState {
   
   // Control functions
   toggleMute: () => void;
+  toggleMusic: () => void;
+  toggleSoundEffects: () => void;
   playHit: () => void;
   playSuccess: () => void;
 }
@@ -22,6 +28,8 @@ export const useAudio = create<AudioState>((set, get) => ({
   hitSound: null,
   successSound: null,
   isMuted: true, // Start muted by default
+  isMusicPlaying: false,
+  areSoundEffectsEnabled: false,
   
   setBackgroundMusic: (music) => set({ backgroundMusic: music }),
   setHitSound: (sound) => set({ hitSound: sound }),
@@ -36,6 +44,39 @@ export const useAudio = create<AudioState>((set, get) => ({
     
     // Log the change
     console.log(`Sound ${newMutedState ? 'muted' : 'unmuted'}`);
+  },
+  
+  toggleMusic: () => {
+    const { isMusicPlaying, backgroundMusic } = get();
+    const newState = !isMusicPlaying;
+    
+    // Update state
+    set({ isMusicPlaying: newState });
+    
+    // Control actual audio playback
+    if (backgroundMusic) {
+      if (newState) {
+        backgroundMusic.play().catch(error => {
+          console.log("Music play prevented:", error);
+        });
+      } else {
+        backgroundMusic.pause();
+      }
+    }
+    
+    // Log the change
+    console.log(`Music ${newState ? 'started' : 'stopped'}`);
+  },
+  
+  toggleSoundEffects: () => {
+    const { areSoundEffectsEnabled } = get();
+    const newState = !areSoundEffectsEnabled;
+    
+    // Update state
+    set({ areSoundEffectsEnabled: newState });
+    
+    // Log the change
+    console.log(`Sound effects ${newState ? 'enabled' : 'disabled'}`);
   },
   
   playHit: () => {

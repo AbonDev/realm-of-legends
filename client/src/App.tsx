@@ -29,15 +29,15 @@ function App() {
     // Initialize the background music but don't play yet
     const music = new Audio("/sounds/background.mp3");
     music.loop = true;
-    music.volume = 0.4;
+    music.volume = 0.1;
     setBackgroundMusic(music);
     storeSetBackgroundMusic(music);
 
     // Set up hit sound and success sound
     const hitSound = new Audio("/sounds/hit.mp3");
-    hitSound.volume = 0.5;
+    hitSound.volume = 0.1;
     const successSound = new Audio("/sounds/success.mp3");
-    successSound.volume = 0.5;
+    successSound.volume = 0.1;
     
     const { setHitSound, setSuccessSound } = useAudio.getState();
     setHitSound(hitSound);
@@ -66,7 +66,6 @@ function App() {
     // }
     return children;
   };
-
 
   return (
     <QueryClientProvider client={queryClient}>

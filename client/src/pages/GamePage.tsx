@@ -1,585 +1,260 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/UI/Fantasy/Button';
-import { Panel } from '../components/UI/Fantasy/Panel';
-import { useCharacter } from '../lib/stores/useCharacter';
-import { playClick, playSuccess } from '../lib/soundEffects';
-import SpeechRecognition from '../components/VoiceInput/SpeechRecognition';
-import TextToSpeech from '../components/VoiceInput/TextToSpeech';
-import DiceRoller from '../components/GameElements/DiceRoller';
-import GameTable from '../components/GameElements/GameTable';
+import React, { useState, useRef, useEffect } from "react";
+import DiceRoller from "../components/GameElements/DiceRoller";
+import SimpleGameMap, { MapToken } from "../components/GameElements/SimpleGameMap";
+import { useCharacter } from "../lib/stores/useCharacter";
+import { useAudio } from "../lib/stores/useAudio";
+import { Button } from "../components/UI/Fantasy/Button";
+
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 type Message = {
   id: number;
-  sender: 'dm' | 'player' | 'system';
+  sender: "dm" | "player" | "system";
   content: string;
   timestamp: string;
 };
 
-type GameAction = {
-  id: number;
-  label: string;
-  description?: string;
-  disabled?: boolean;
-};
-
-// Token type for the game table
-type Token = {
-  id: string;
-  position: [number, number, number];
-  color: string;
-  name: string;
-  size: number;
-  isPlayer: boolean;
-};
-
 export default function GamePage() {
-  const { character } = useCharacter();
-  const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [availableActions, setAvailableActions] = useState<GameAction[]>([]);
-  const [gameState, setGameState] = useState<'intro' | 'exploring' | 'combat' | 'dialog'>('intro');
-  const [isSendingMessage, setIsSendingMessage] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [showDiceRoller, setShowDiceRoller] = useState(false);
-  const [showGameTable, setShowGameTable] = useState(false);
-  const [lastDiceResult, setLastDiceResult] = useState<{ result: number; type: string } | null>(null);
-  const [gameTokens, setGameTokens] = useState<Token[]>([
+  const [messages, setMessages] = useState<Message[]>([
     {
-      id: 'player',
-      position: [0, 0, 0],
-      color: '#3498db',
-      name: character.name || 'Player',
-      size: 1,
-      isPlayer: true
-    }
+      id: 1,
+      sender: "dm",
+      content: "Bem-vindo, Aventureiro! Sou seu Mestre de Jogo. Vamos começar!",
+      timestamp: new Date().toISOString(),
+    },
   ]);
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  // Initial game setup
-  useEffect(() => {
-    // Load character data if it exists
-    const storedGameData = localStorage.getItem('currentGameData');
-    
-    // Add introduction messages
-    const initialMessages: Message[] = [
-      {
-        id: 1,
-        sender: 'system',
-        content: 'Welcome to Realm of Legends! Your adventure begins now...',
-        timestamp: new Date().toISOString()
-      },
-      {
-        id: 2,
-        sender: 'dm',
-        content: `Welcome, ${character.name || 'Adventurer'}! I am your AI Dungeon Master and will guide you through this adventure. The world awaits your heroic deeds. Hold the "Speak" button to talk to me directly!`,
-        timestamp: new Date(Date.now() + 1000).toISOString()
-      },
-      {
-        id: 3,
-        sender: 'dm',
-        content: `You find yourself standing at the entrance of a small village called Meadowbrook. The sun is setting, casting long shadows across the dirt path. The journey has been long, and you're looking for a place to rest.`,
-        timestamp: new Date(Date.now() + 2000).toISOString()
-      }
-    ];
-    
-    setMessages(initialMessages);
-    
-    // Set initial available actions
-    setAvailableActions([
-      { id: 1, label: 'Enter the village', description: 'Look for an inn or tavern to rest' },
-      { id: 2, label: 'Observe surroundings', description: 'Take a moment to survey the area' },
-      { id: 3, label: 'Check equipment', description: 'Review your inventory and gear' }
-    ]);
-    
-    // Play ambient sound
-    playSuccess();
-  }, []);
-  
-  // Auto-scroll to bottom when messages update
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-  
-  // Handle adding NPCs to the game table
-  const addEnemyToTable = (position: [number, number, number], name = 'Enemy') => {
-    const newToken: Token = {
-      id: `enemy_${Date.now()}`,
-      position,
-      color: '#e74c3c',
-      name,
+  const [inputMessage, setInputMessage] = useState("");
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const character = useCharacter();
+  const audio = useAudio();
+  const [mapTokens, setMapTokens] = useState<MapToken[]>([
+    {
+      id: "player",
+      x: 5,
+      y: 5,
+      color: "#3498db",
+      name: "Herói",
       size: 0.8,
-      isPlayer: false
-    };
-    
-    setGameTokens(prev => [...prev, newToken]);
-  };
-  
-  // Handle text or voice message
-  const handleSendMessage = async (e?: React.FormEvent, spokenMessage?: string) => {
-    if (e) e.preventDefault();
-    
-    const messageToSend = spokenMessage || inputMessage;
-    if (!messageToSend.trim() || isSendingMessage) return;
-    
-    setIsSendingMessage(true);
-    playClick();
-    
-    // Add player message
-    const newMessage: Message = {
-      id: messages.length + 1,
-      sender: 'player',
-      content: messageToSend,
-      timestamp: new Date().toISOString()
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
-    setInputMessage('');
-    
-    // Simulate AI response
-    setTimeout(() => {
-      // In a real implementation, this would call an AI service like GPT
-      let aiResponse: Message;
-      
-      // Simple response logic based on keywords
-      if (messageToSend.toLowerCase().includes('hello') || messageToSend.toLowerCase().includes('hi')) {
-        aiResponse = {
-          id: messages.length + 2,
-          sender: 'dm',
-          content: `Greetings, ${character.name || 'Adventurer'}! How may I assist you on your journey?`,
-          timestamp: new Date().toISOString()
-        };
-      } else if (messageToSend.toLowerCase().includes('inn') || messageToSend.toLowerCase().includes('tavern')) {
-        aiResponse = {
-          id: messages.length + 2,
-          sender: 'dm',
-          content: `The village has a small inn called "The Sleeping Dragon" near the center. As you approach, you can hear laughter and music coming from inside.`,
-          timestamp: new Date().toISOString()
-        };
-        
-        // Update available actions
-        setAvailableActions([
-          { id: 1, label: 'Enter the inn', description: 'Step inside The Sleeping Dragon' },
-          { id: 2, label: 'Look around the village', description: 'Explore more of Meadowbrook first' }
-        ]);
-      } else if (messageToSend.toLowerCase().includes('dice') || messageToSend.toLowerCase().includes('roll')) {
-        aiResponse = {
-          id: messages.length + 2,
-          sender: 'dm',
-          content: `You want to test your luck with a dice roll? Very well! I've opened the dice roller for you. Select the type of die you wish to roll.`,
-          timestamp: new Date().toISOString()
-        };
-        
-        // Show dice roller
-        setShowDiceRoller(true);
-      } else if (messageToSend.toLowerCase().includes('combat') || messageToSend.toLowerCase().includes('battle') || messageToSend.toLowerCase().includes('fight')) {
-        aiResponse = {
-          id: messages.length + 2,
-          sender: 'dm',
-          content: `As you venture into the outskirts of the village, you notice movement in the tall grass. Three goblins emerge, brandishing crude weapons! I've opened the battle map so you can see the tactical situation.`,
-          timestamp: new Date().toISOString()
-        };
-        
-        // Show game table and add enemies
-        setShowGameTable(true);
-        setGameState('combat');
-        setTimeout(() => {
-          addEnemyToTable([3, 0, 3], 'Goblin Scout');
-          addEnemyToTable([2, 0, 5], 'Goblin Warrior');
-          addEnemyToTable([4, 0, 4], 'Goblin Archer');
-        }, 1000);
-      } else {
-        aiResponse = {
-          id: messages.length + 2,
-          sender: 'dm',
-          content: `The AI Dungeon Master nods thoughtfully at your words. "Interesting approach. What would you like to do next?"`,
-          timestamp: new Date().toISOString()
-        };
-      }
-      
-      setMessages(prev => [...prev, aiResponse]);
-      setIsSendingMessage(false);
-    }, 1500);
-  };
-  
-  const handleVoiceResult = (transcript: string) => {
-    // Process the speech recognition result
-    if (transcript.trim()) {
-      handleSendMessage(undefined, transcript);
+      isPlayer: true,
+    },
+  ]);
+
+  const [showDiceRoller, setShowDiceRoller] = useState(false);
+  const [showBattleMap, setShowBattleMap] = useState(true);
+
+  const sessionId = "default-session";
+
+  async function askDungeonMaster(message: string): Promise<string> {
+    const response = await fetch("/api/ask-gpt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, sessionId }),
+    });
+
+    const data = await response.json();
+    return data.reply || "Erro ao obter resposta do Mestre.";
+  }
+
+  async function playDungeonMasterVoice(text: string) {
+    try {
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) return;
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      new Audio(url).play();
+    } catch (error) {
+      console.error("Erro ao tocar áudio:", error);
     }
-  };
-  
-  const handleAction = (actionId: number) => {
-    playClick();
-    
-    // Find the selected action
-    const action = availableActions.find(a => a.id === actionId);
-    if (!action) return;
-    
-    // Add player action message
-    const playerActionMessage: Message = {
+  }
+
+  async function handleSend(messageToSend?: string) {
+    const message = messageToSend ?? inputMessage.trim();
+    if (!message) return;
+
+    const userMsg: Message = {
       id: messages.length + 1,
-      sender: 'player',
-      content: `*${action.label}*`,
-      timestamp: new Date().toISOString()
+      sender: "player",
+      content: message,
+      timestamp: new Date().toISOString(),
     };
-    
-    setMessages(prev => [...prev, playerActionMessage]);
-    
-    // Simulate AI response based on the action
-    setTimeout(() => {
-      let aiResponse: Message;
-      let newActions: GameAction[] = [];
-      
-      // Different responses based on selected action
-      switch(actionId) {
-        case 1: // Enter the village
-          aiResponse = {
-            id: messages.length + 2,
-            sender: 'dm',
-            content: `You walk down the main path of Meadowbrook. Villagers go about their evening routines, some nodding respectfully as you pass. The Sleeping Dragon inn stands prominently in the center of the village, its sign creaking gently in the breeze. A warm glow emanates from its windows, and the sound of laughter and music can be heard from within.`,
-            timestamp: new Date().toISOString()
-          };
-          newActions = [
-            { id: 4, label: 'Enter the inn', description: 'Step inside to find food and lodging' },
-            { id: 5, label: 'Visit the market', description: 'Check if any shops are still open' },
-            { id: 6, label: 'Speak with villagers', description: 'Ask about local news or rumors' }
-          ];
-          break;
-          
-        case 2: // Observe surroundings
-          aiResponse = {
-            id: messages.length + 2,
-            sender: 'dm',
-            content: `You take a moment to observe Meadowbrook. It's a modest village of about two dozen buildings, mostly wooden cottages with thatched roofs. A stone well sits in the village square, and a small temple can be seen on a gentle rise to the north. To the east, you notice farmlands stretching toward distant hills. The village seems peaceful, though you notice a few guards patrolling with concerned expressions.`,
-            timestamp: new Date().toISOString()
-          };
-          newActions = [
-            { id: 7, label: 'Enter the village', description: 'Proceed into Meadowbrook' },
-            { id: 8, label: 'Approach a guard', description: 'Ask about their concerns' },
-            { id: 9, label: 'Check the temple', description: 'Visit the temple on the hill' }
-          ];
-          break;
-          
-        case 3: // Check equipment
-          aiResponse = {
-            id: messages.length + 2,
-            sender: 'dm',
-            content: `You take inventory of your possessions. Your ${character.equipment && character.equipment[0] || 'weapon'} is in good condition, and your travel pack contains basic supplies: a waterskin, rations for three days, a tinderbox, and 15 gold pieces. Your ${character.class || 'adventurer'} training has prepared you well for the journey ahead, but you could use some rest and perhaps additional supplies.`,
-            timestamp: new Date().toISOString()
-          };
-          newActions = availableActions; // Keep the same actions
-          break;
-          
-        default:
-          aiResponse = {
-            id: messages.length + 2,
-            sender: 'dm',
-            content: `The AI Dungeon Master acknowledges your action and waits to see what you'll do next.`,
-            timestamp: new Date().toISOString()
-          };
-          newActions = availableActions; // Keep the same actions
-      }
-      
-      setMessages(prev => [...prev, aiResponse]);
-      setAvailableActions(newActions);
-    }, 1500);
-  };
-  
-  const handleDiceRollComplete = (result: number, diceType: string) => {
-    setLastDiceResult({ result, type: diceType });
-    
-    // Add dice roll message
-    const diceMessage: Message = {
-      id: messages.length + 1,
-      sender: 'system',
-      content: `${character.name || 'You'} rolled a ${result} on a ${diceType}.`,
-      timestamp: new Date().toISOString()
+
+    setMessages((prev) => [...prev, userMsg]);
+    setInputMessage("");
+
+    const dmReply = await askDungeonMaster(message);
+
+    const dmMsg: Message = {
+      id: userMsg.id + 1,
+      sender: "dm",
+      content: dmReply,
+      timestamp: new Date().toISOString(),
     };
-    
-    setMessages(prev => [...prev, diceMessage]);
-    
-    // Simulate DM response to the dice roll
-    setTimeout(() => {
-      let dmResponse: Message;
-      
-      if (result === 20 && diceType === 'd20') {
-        dmResponse = {
-          id: messages.length + 2,
-          sender: 'dm',
-          content: 'A critical success! Your skill and luck combine for an extraordinary outcome!',
-          timestamp: new Date().toISOString()
-        };
-      } else if (result === 1 && diceType === 'd20') {
-        dmResponse = {
-          id: messages.length + 2,
-          sender: 'dm',
-          content: 'A critical failure! Sometimes fate has other plans...',
-          timestamp: new Date().toISOString()
-        };
-      } else if (result >= 15) {
-        dmResponse = {
-          id: messages.length + 2,
-          sender: 'dm',
-          content: 'An excellent roll! Your expertise shines through.',
-          timestamp: new Date().toISOString()
-        };
-      } else if (result <= 5) {
-        dmResponse = {
-          id: messages.length + 2,
-          sender: 'dm',
-          content: 'A poor roll. Even the most skilled adventurers have their off moments.',
-          timestamp: new Date().toISOString()
-        };
-      } else {
-        dmResponse = {
-          id: messages.length + 2,
-          sender: 'dm',
-          content: 'A fair roll. Your attempt is neither exceptional nor poor.',
-          timestamp: new Date().toISOString()
-        };
-      }
-      
-      setMessages(prev => [...prev, dmResponse]);
-    }, 1000);
-  };
-  
-  const handleExitGame = () => {
-    if (confirm('Are you sure you want to exit? Your progress will be saved.')) {
-      // Save game state
-      const gameData = {
-        character,
-        messages,
-        gameState,
-        lastPlayed: new Date().toISOString()
-      };
-      
-      localStorage.setItem('savedGame_' + Date.now(), JSON.stringify(gameData));
-      navigate('/main-menu');
+
+    setMessages((prev) => [...prev, dmMsg]);
+    await playDungeonMasterVoice(dmReply);
+  }
+
+  function handleMouseDown() {
+    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionClass) {
+      alert("Seu navegador não suporta reconhecimento de voz!");
+      return;
     }
-  };
-  
+
+    const recognition = new SpeechRecognitionClass();
+    recognitionRef.current = recognition;
+
+    recognition.lang = "pt-BR";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      await handleSend(transcript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Erro no reconhecimento de voz:", event.error);
+    };
+
+    recognition.start();
+    setListening(true);
+  }
+
+  function handleMouseUp() {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setListening(false);
+    }
+  }
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
   return (
-    <div className="game-page" style={{
-      width: '100%',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundImage: "url('/src/assets/backgrounds/character-bg.svg')",
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-    }}>
-      {/* Game Header */}
-      <header style={{
-        padding: '10px 20px',
-        background: 'rgba(0, 0, 0, 0.7)',
-        backdropFilter: 'blur(5px)',
-        borderBottom: '1px solid var(--border-light)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div className="character-info flex items-center">
-          <h2 className="text-gold font-title mr-4">{character.name || 'Adventurer'}</h2>
-          <span className="text-sm text-gray-300">
-            Level 1 {character.race} {character.class}
-          </span>
-        </div>
-        
-        <div className="game-controls flex gap-3">
-          <Button 
-            size="sm" 
-            variant={showDiceRoller ? "primary" : "ghost"} 
-            onClick={() => setShowDiceRoller(!showDiceRoller)}
-          >
-            Dice
-          </Button>
-          <Button 
-            size="sm" 
-            variant={showGameTable ? "primary" : "ghost"} 
-            onClick={() => setShowGameTable(!showGameTable)}
-          >
-            Battle Map
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => alert('Character sheet opens here')}>
-            Character
-          </Button>
-          <Button size="sm" variant="secondary" onClick={handleExitGame}>
-            Save & Exit
-          </Button>
+    <div className="flex flex-col h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white">
+      <header className="flex justify-between items-center p-3 border-b border-gray-800">
+        <div className="font-bold text-xl">Realm of Legends</div>
+        <div className="flex space-x-2">
+          <Button onClick={() => setShowDiceRoller(!showDiceRoller)}>🎲 Dados</Button>
+          <Button onClick={() => setShowBattleMap(!showBattleMap)}>🗺️ Mapa</Button>
         </div>
       </header>
-      
-      {/* Main Game View */}
-      {showGameTable && (
-        <div className="game-table-container" style={{ height: '60vh', padding: '10px' }}>
-          <Panel className="w-full h-full flex flex-col p-4" style={{
-            backdropFilter: 'blur(10px)',
-          }}>
-            <GameTable 
-              tokens={gameTokens}
-              onTokenMove={(tokenId, newPosition) => {
-                setGameTokens(prev => 
-                  prev.map(token => 
-                    token.id === tokenId ? { ...token, position: newPosition } : token
-                  )
-                );
-              }}
-              onAddToken={(position) => {
-                addEnemyToTable(position);
-              }}
-              tableSize={[30, 30]}
-              gridSize={1}
-            />
-          </Panel>
-        </div>
-      )}
-      
-      {/* Game Content Area */}
-      <div className={`game-content-area flex-1 flex p-4 gap-4 overflow-hidden ${showGameTable ? 'h-[40vh]' : 'h-full'}`}>
-        {/* Left Panel - Game Narrative */}
-        <Panel className="narrative-panel flex-1 flex flex-col" style={{
-          backdropFilter: 'blur(10px)',
-          minWidth: 0, // Allows the panel to shrink below its content size
-        }}>
-          {/* Messages Area */}
-          <div className="messages-area flex-1 overflow-y-auto p-4">
-            <div className="messages-container">
-              {messages.map(message => (
-                <div 
-                  key={message.id}
-                  className={`message mb-4 ${message.sender === 'player' ? 'pl-4' : 'pr-4'}`}
-                >
-                  {message.sender === 'system' ? (
-                    <div className="system-message bg-primary-dark bg-opacity-40 text-center p-2 rounded-md text-white">
-                      {message.content}
-                    </div>
-                  ) : message.sender === 'dm' ? (
-                    <div className="dm-message">
-                      <div className="dm-header flex justify-between text-gold text-xs mb-1 font-title">
-                        <span>Dungeon Master</span>
-                        <TextToSpeech text={message.content} />
-                      </div>
-                      <div className="dm-content bg-gray-900 bg-opacity-70 p-3 rounded-md font-body">
-                        {message.content}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="player-message flex justify-end">
-                      <div className="player-message-content">
-                        <div className="player-header text-primary-light text-xs mb-1 text-right font-title">
-                          {character.name || 'You'}
-                        </div>
-                        <div className="player-content bg-primary-dark bg-opacity-50 p-3 rounded-md font-body">
-                          {message.content}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        <aside className="w-64 bg-gray-800 p-4 overflow-y-auto border-r border-gray-700">
+          <div className="text-center mb-4">
+            <img src={character.portraitUrl} alt="Portrait" className="rounded-full w-24 h-24 mx-auto" />
+            <h3 className="mt-2">{character.name}</h3>
+            <p className="text-gray-400 text-sm">{character.race} {character.class}</p>
           </div>
-          
-          {/* Input Area with Voice Recognition */}
-          <div className="input-area p-4 border-t border-gray-800">
-            <div className="flex gap-2 mb-4">
-              <SpeechRecognition 
-                onSpeechResult={handleVoiceResult} 
-                isListening={isListening}
-                setIsListening={setIsListening}
+          <div>
+            <h4 className="text-sm text-gray-400 mb-1">HP:</h4>
+            <div className="w-full bg-gray-600 h-2 rounded">
+              <div
+                className="bg-green-500 h-2 rounded"
+                style={{ width: `${(character.health.current / character.health.max) * 100}%` }}
               />
             </div>
-            
-            <form onSubmit={handleSendMessage} className="flex gap-2">
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Type your message or use voice..."
-                className="flex-1 bg-gray-900 text-white border border-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-light"
-                disabled={isSendingMessage || isListening}
+            <h4 className="text-sm text-gray-400 mt-2 mb-1">Mana:</h4>
+            <div className="w-full bg-gray-600 h-2 rounded">
+              <div
+                className="bg-blue-500 h-2 rounded"
+                style={{ width: `${(character.mana.current / character.mana.max) * 100}%` }}
               />
-              <Button 
-                type="submit" 
-                disabled={isSendingMessage || isListening || !inputMessage.trim()}
-              >
-                {isSendingMessage ? 'Sending...' : 'Send'}
-              </Button>
-            </form>
-          </div>
-        </Panel>
-        
-        {/* Right Panel - Game Actions and Dice */}
-        <Panel className="actions-panel w-80 flex flex-col" style={{
-          backdropFilter: 'blur(10px)',
-        }}>
-          {showDiceRoller ? (
-            <div className="p-4 overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-gold font-title">Dice Roller</h3>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={() => setShowDiceRoller(false)}
-                >
-                  Close
-                </Button>
-              </div>
-              
-              <DiceRoller onRollComplete={handleDiceRollComplete} />
-              
-              {lastDiceResult && (
-                <div className="mt-4 text-center">
-                  <p>Last Roll: <span className="text-gold font-bold">{lastDiceResult.result}</span> on a {lastDiceResult.type}</p>
-                </div>
-              )}
             </div>
-          ) : (
-            <>
-              <div className="p-4 border-b border-gray-800 overflow-y-auto">
-                <h3 className="text-gold font-title mb-2">Available Actions</h3>
-                <div className="actions-list flex flex-col gap-2">
-                  {availableActions.map(action => (
-                    <button
-                      key={action.id}
-                      onClick={() => handleAction(action.id)}
-                      disabled={action.disabled}
-                      className="text-left bg-gray-900 bg-opacity-70 hover:bg-opacity-90 p-3 rounded-md transition-all text-white border border-gray-800 hover:border-primary-light"
-                    >
-                      <div className="font-title text-gold">{action.label}</div>
-                      {action.description && (
-                        <div className="text-sm text-gray-300 mt-1">{action.description}</div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="current-context p-4 border-b border-gray-800">
-                <h3 className="text-gold font-title mb-2">Current Location</h3>
-                <p className="text-gray-300 text-sm">Meadowbrook Village Entrance</p>
-                <p className="text-gray-400 text-xs mt-1">Time: Evening</p>
-              </div>
-              
-              <div className="party-status p-4">
-                <h3 className="text-gold font-title mb-2">Party Status</h3>
-                <div className="party-member bg-gray-900 bg-opacity-50 p-2 rounded-md">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white">{character.name || 'Adventurer'}</span>
-                    <span className="text-green-500 text-sm">Healthy</span>
-                  </div>
-                  <div className="health-bar w-full h-2 bg-gray-700 rounded-full mt-1">
-                    <div className="h-full bg-green-600 rounded-full" style={{ width: '100%' }}></div>
-                  </div>
-                </div>
-              </div>
-            </>
+          </div>
+        </aside>
+
+        <main className="flex-1 flex flex-col">
+          {showDiceRoller && (
+            <div className="p-4 border-b border-gray-700">
+              <DiceRoller onRollComplete={(result, type) => {
+                const msg: Message = {
+                  id: messages.length + 1,
+                  sender: "system",
+                  content: `Você rolou um ${type} e tirou ${result}`,
+                  timestamp: new Date().toISOString()
+                };
+                setMessages((prev) => [...prev, msg]);
+              }} />
+            </div>
           )}
-        </Panel>
+
+          {showBattleMap && (
+            <div className="p-4">
+              <SimpleGameMap
+                tokens={mapTokens}
+                mapWidth={600}
+                mapHeight={400}
+                gridSize={40}
+                background="/textures/grass.svg"
+                onTokenMove={(id, x, y) => {
+                  setMapTokens(prev =>
+                    prev.map(t => t.id === id ? { ...t, x, y } : t)
+                  );
+                }}
+                onAddToken={(x, y) => {
+                  setMapTokens(prev => [...prev, {
+                    id: `token_${Date.now()}`,
+                    x, y, name: "NPC", size: 0.7,
+                    isPlayer: false, color: "#e67e22"
+                  }]);
+                }}
+              />
+            </div>
+          )}
+
+          <div className="flex-1 p-4 overflow-y-auto space-y-3">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`p-2 rounded ${msg.sender === "player" ? "bg-blue-900" : msg.sender === "dm" ? "bg-gray-700" : "bg-yellow-800"}`}>
+                <div className="text-xs text-gray-400">{msg.sender} — {new Date(msg.timestamp).toLocaleTimeString()}</div>
+                <div>{msg.content}</div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+
+          <footer className="flex items-center p-4 border-t border-gray-700 space-x-2">
+            <button
+              onMouseDown={handleMouseDown}
+              onMouseUp={handleMouseUp}
+              className={`px-3 py-2 rounded-full ${listening ? "bg-red-700" : "bg-blue-700"}`}
+            >
+              🎤
+            </button>
+            <input
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              placeholder="Digite sua ação..."
+              className="flex-1 bg-gray-700 px-3 py-2 rounded-md focus:outline-none"
+            />
+            <button
+              onClick={() => handleSend()}
+              className="px-4 py-2 bg-blue-700 rounded-md"
+            >
+              Enviar
+            </button>
+          </footer>
+        </main>
       </div>
     </div>
   );
