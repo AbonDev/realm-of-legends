@@ -100,6 +100,17 @@ function TableScene({
   tableSize = [20, 20],
   gridSize = 1
 }: GameTableProps) {
+  const [rollingDice, setRollingDice] = useState(false);
+
+  useEffect(() => {
+    const handleDiceRoll = (e: CustomEvent) => {
+      setRollingDice(true);
+      setTimeout(() => setRollingDice(false), 1500);
+    };
+
+    window.addEventListener('diceRoll', handleDiceRoll as EventListener);
+    return () => window.removeEventListener('diceRoll', handleDiceRoll as EventListener);
+  }, []);
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const { camera, raycaster, scene, gl } = useThree();
   const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -219,6 +230,118 @@ function TableScene({
         />
       ))}
       
+      {/* Dice animation */}
+      {rollingDice && (
+        <DiceAnimation
+          onAnimationComplete={() => {
+            setTimeout(() => setRollingDice(false), 1000);
+          }}
+        />
+      )}
+
+function DiceAnimation({ onAnimationComplete }: { onAnimationComplete: () => void }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [state, setState] = useState({
+    position: new THREE.Vector3(Math.random() * 4 - 2, 8, Math.random() * 4 - 2),
+    velocity: new THREE.Vector3(Math.random() * 4 - 2, 0, Math.random() * 4 - 2),
+    angularVelocity: new THREE.Vector3(
+      Math.random() * 10 - 5,
+      Math.random() * 10 - 5,
+      Math.random() * 10 - 5
+    ),
+    bounceCount: 0
+  });
+
+  useFrame((_, delta) => {
+    if (!meshRef.current) return;
+
+    // Apply gravity
+    state.velocity.y -= 9.81 * delta;
+
+    // Update position
+    state.position.add(state.velocity.clone().multiplyScalar(delta));
+    meshRef.current.position.copy(state.position);
+
+    // Apply rotation
+    meshRef.current.rotation.x += state.angularVelocity.x * delta;
+    meshRef.current.rotation.y += state.angularVelocity.y * delta;
+    meshRef.current.rotation.z += state.angularVelocity.z * delta;
+
+    // Ground collision
+    if (state.position.y < 0.5 && state.velocity.y < 0) {
+      if (state.bounceCount < 3) {
+        // Bounce with energy loss
+        state.velocity.y = -state.velocity.y * 0.5;
+        state.velocity.x *= 0.7;
+        state.velocity.z *= 0.7;
+        state.angularVelocity.multiplyScalar(0.6);
+        state.position.y = 0.5;
+        state.bounceCount += 1;
+      } else {
+        // Come to rest
+        state.velocity.set(0, 0, 0);
+        state.angularVelocity.multiplyScalar(0.95);
+        state.position.y = 0.5;
+
+        // Check if dice has stopped
+        if (state.angularVelocity.length() < 0.1) {
+          onAnimationComplete();
+        }
+      }
+    }
+
+    // Wall collisions
+    const bounds = 5;
+    if (Math.abs(state.position.x) > bounds) {
+      state.velocity.x *= -0.8;
+      state.position.x = Math.sign(state.position.x) * bounds;
+    }
+    if (Math.abs(state.position.z) > bounds) {
+      state.velocity.z *= -0.8;
+      state.position.z = Math.sign(state.position.z) * bounds;
+    }
+
+    setState({ ...state });
+  });
+
+  return (
+    <mesh ref={meshRef} position={state.position.toArray()} castShadow>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color="white" roughness={0.3} metalness={0.2} />
+      {/* Dice faces */}
+      {[...Array(6)].map((_, i) => (
+        <Html
+          key={i}
+          position={[
+            i === 0 ? 0.51 : i === 1 ? -0.51 : 0,
+            i === 2 ? 0.51 : i === 3 ? -0.51 : 0,
+            i === 4 ? 0.51 : i === 5 ? -0.51 : 0
+          ]}
+          rotation={[
+            i === 2 || i === 3 ? Math.PI / 2 : 0,
+            i === 0 || i === 1 ? Math.PI / 2 : 0,
+            0
+          ]}
+        >
+          <div className="dice-face" style={{
+            width: '30px',
+            height: '30px',
+            background: 'white',
+            border: '2px solid black',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px'
+          }}>
+            {i + 1}
+          </div>
+        </Html>
+      ))}
+    </mesh>
+  );
+}
+
       {/* Movement cursor */}
       {selectedToken && (
         <mesh position={intersectionPoint.current} rotation={[-Math.PI / 2, 0, 0]}>
@@ -311,6 +434,11 @@ export default function GameTable(props: GameTableProps) {
   return (
     <div className="game-table">
       <div className="controls flex flex-wrap gap-2 mb-4">
+        <DiceRoller onRollComplete={(result, diceType) => {
+          // Here you can add visual effects for the dice roll on the table
+          console.log(`Rolled ${diceType}: ${result}`);
+        }} />
+        
         <Button
           onClick={() => alert('Controls:\n- Click on a token to select it\n- Click on the table to move the selected token\n- Right-click to add a new token')}
           className="ml-auto"
