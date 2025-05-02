@@ -1,7 +1,11 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '../UI/dialog';
 import { Button } from '../UI/Fantasy/Button';
 import { playClick, playSuccess } from '../../lib/soundEffects';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import DiceAnimation from './DiceAnimation';
 
 type DiceType = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
 
@@ -13,21 +17,12 @@ export default function DiceRoller({ onRollComplete }: DiceRollerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDice, setSelectedDice] = useState<DiceType>('d20');
   const [quantity, setQuantity] = useState(1);
+  const [isRolling, setIsRolling] = useState(false);
 
   const handleRoll = () => {
     playClick();
-    setIsOpen(false);
+    setIsRolling(true);
 
-    // Emit event for 3D dice animation
-    const event = new CustomEvent('diceRoll', {
-      detail: {
-        diceType: selectedDice,
-        quantity: quantity
-      }
-    });
-    window.dispatchEvent(event);
-
-    // Delay the result calculation to match animation
     setTimeout(() => {
       const results = Array(quantity).fill(0).map(() => {
         const max = parseInt(selectedDice.substring(1));
@@ -40,6 +35,11 @@ export default function DiceRoller({ onRollComplete }: DiceRollerProps) {
       if (onRollComplete) {
         onRollComplete(total, selectedDice);
       }
+
+      setTimeout(() => {
+        setIsRolling(false);
+        setIsOpen(false);
+      }, 1000);
     }, 1500);
   };
 
@@ -50,7 +50,7 @@ export default function DiceRoller({ onRollComplete }: DiceRollerProps) {
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="bg-gray-900 text-white border border-gray-700 rounded-lg shadow-xl w-[400px]">
+        <DialogContent className="bg-gray-900 text-white border border-gray-700 rounded-lg shadow-xl w-[600px] h-[600px]">
           <DialogTitle className="text-2xl font-fantasy text-center text-gold mb-4">Choose Your Dice</DialogTitle>
 
           <div className="flex flex-col gap-6 p-4">
@@ -79,11 +79,22 @@ export default function DiceRoller({ onRollComplete }: DiceRollerProps) {
               />
             </div>
 
+            {/* 3D Dice Animation Canvas */}
+            <div className="relative w-full h-[300px] bg-gray-800 rounded-lg">
+              <Canvas shadows camera={{ position: [0, 5, 5], fov: 50 }}>
+                <ambientLight intensity={0.4} />
+                <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
+                {isRolling && <DiceAnimation onAnimationComplete={() => {}} />}
+                <OrbitControls enabled={false} />
+              </Canvas>
+            </div>
+
             <Button 
-              onClick={handleRoll} 
+              onClick={handleRoll}
+              disabled={isRolling}
               className="mt-4 text-lg h-12 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-500 hover:to-yellow-600"
             >
-              Roll {quantity} {selectedDice}
+              {isRolling ? "Rolling..." : `Roll ${quantity} ${selectedDice}`}
             </Button>
           </div>
         </DialogContent>
