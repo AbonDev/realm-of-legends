@@ -47,29 +47,29 @@ function Dice({ diceType, onRollComplete }: { diceType: DiceType, onRollComplete
   const getDiceGeometry = () => {
     switch (diceType) {
       case 'd4':
-        return <tetrahedronGeometry args={[1.4, 0]} />;
+        return <tetrahedronGeometry args={[2, 0]} />;
       case 'd8':
-        return <octahedronGeometry args={[1.4, 0]} />;
+        return <octahedronGeometry args={[2, 0]} />;
       case 'd10':
-        return <dodecahedronGeometry args={[1.4, 0]} />;
+        return <dodecahedronGeometry args={[2, 0]} />;
       case 'd12':
-        return <dodecahedronGeometry args={[1.4, 0]} />;
+        return <dodecahedronGeometry args={[2, 0]} />;
       case 'd20':
-        return <icosahedronGeometry args={[1.4, 0]} />;
+        return <icosahedronGeometry args={[2, 0]} />;
       case 'd6':
       default:
-        return <boxGeometry args={[1.4, 1.4, 1.4]} />;
+        return <boxGeometry args={[2, 2, 2]} />;
     }
   };
   
-  // Create a metallic material for the dice
+  // Create a shiny material for the dice with a golden glow
   const diceMaterial = (
     <meshStandardMaterial
-      color="#e0e0e0"
-      metalness={0.9}
-      roughness={0.1}
-      emissive="#404040"
-      emissiveIntensity={0.2}
+      color="#FFD700"
+      metalness={1}
+      roughness={0}
+      emissive="#FFA500"
+      emissiveIntensity={0.5}
     />
   );
   
@@ -92,11 +92,15 @@ function Dice({ diceType, onRollComplete }: { diceType: DiceType, onRollComplete
     // Bounce on floor with more dynamic movement
     if (newPosition[1] < 0) {
       newPosition[1] = 0;
-      velocity.current.position[1] *= -0.7; // More bouncy
+      velocity.current.position[1] *= -0.85; // Extra bouncy
       
-      // Add slight randomness to bounce direction
-      velocity.current.position[0] += (Math.random() - 0.5) * 0.1;
-      velocity.current.position[2] += (Math.random() - 0.5) * 0.1;
+      // Add more dramatic randomness to bounce direction
+      velocity.current.position[0] += (Math.random() - 0.5) * 0.3;
+      velocity.current.position[2] += (Math.random() - 0.5) * 0.3;
+      
+      // Add spin on bounce
+      velocity.current.rotation[0] += (Math.random() - 0.5) * 0.5;
+      velocity.current.rotation[1] += (Math.random() - 0.5) * 0.5;
       
       // Slow down with better physics feel
       velocity.current.position[0] *= 0.85;
