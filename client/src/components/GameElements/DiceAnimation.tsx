@@ -56,47 +56,34 @@ export default function DiceAnimation({ onAnimationComplete }: DiceAnimationProp
 
   return (
     <mesh ref={meshRef} position={state.position.toArray()} castShadow>
-      <boxGeometry args={[1, 1, 1]} />
+      <icosahedronGeometry args={[0.8]} />
       <meshStandardMaterial color="#f0f0f0" roughness={0.2} metalness={0.1} />
-      {[...Array(6)].map((_, i) => (
+      {[...Array(20)].map((_, i) => (
         <Html
           key={i}
           position={[
-            i === 0 ? 0.51 : i === 1 ? -0.51 : 0,
-            i === 2 ? 0.51 : i === 3 ? -0.51 : 0,
-            i === 4 ? 0.51 : i === 5 ? -0.51 : 0
+            Math.cos(i * Math.PI * 2 / 20) * 0.82,
+            Math.sin(i * Math.PI * 2 / 20) * 0.82,
+            (i % 2 === 0 ? 0.82 : -0.82)
           ]}
-          rotation={[
-            i === 2 || i === 3 ? Math.PI / 2 : 0,
-            i === 0 || i === 1 ? Math.PI / 2 : 0,
-            0
-          ]}
+          rotation={[0, 0, i * Math.PI * 2 / 20]}
         >
           <div className="dice-face" style={{
-            width: '40px',
-            height: '40px',
+            width: '30px',
+            height: '30px',
             background: 'ivory',
-            border: '3px solid #8B4513',
-            borderRadius: '8px',
-            boxShadow: 'inset 0 0 10px rgba(0,0,0,0.2)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gridTemplateRows: 'repeat(3, 1fr)',
-            padding: '2px',
-            transform: 'translate(-50%, -50%)'
+            border: '2px solid #8B4513',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: '#8B4513',
+            transform: 'translate(-50%, -50%)',
+            boxShadow: 'inset 0 0 5px rgba(0,0,0,0.2)'
           }}>
-            {[...Array(i + 1)].map((_, dotIndex) => (
-              <div
-                key={dotIndex}
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  background: '#8B4513',
-                  borderRadius: '50%',
-                  margin: 'auto'
-                }}
-              />
-            ))}
+            {i + 1}
           </div>
         </Html>
       ))}
