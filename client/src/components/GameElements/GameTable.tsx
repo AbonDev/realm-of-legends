@@ -232,13 +232,49 @@ function TableScene({
       
       {/* Dice animation */}
       {rollingDice && (
-        <group position={[0, 5, 0]}>
-          <mesh castShadow>
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color="white" />
-          </mesh>
-        </group>
+        <DiceAnimation
+          onAnimationComplete={() => {
+            setTimeout(() => setRollingDice(false), 1000);
+          }}
+        />
       )}
+
+function DiceAnimation({ onAnimationComplete }: { onAnimationComplete: () => void }) {
+  const [position] = useState<[number, number, number]>([
+    Math.random() * 4 - 2,
+    8,
+    Math.random() * 4 - 2
+  ]);
+  
+  const meshRef = useRef<THREE.Mesh>(null);
+  
+  useFrame((state, delta) => {
+    if (meshRef.current) {
+      // Add gravity
+      if (meshRef.current.position.y > 0.5) {
+        meshRef.current.position.y -= 9.8 * delta;
+      } else {
+        onAnimationComplete();
+      }
+      
+      // Add rotation
+      meshRef.current.rotation.x += delta * 5;
+      meshRef.current.rotation.y += delta * 3;
+      meshRef.current.rotation.z += delta * 4;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={position} castShadow>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color="white" />
+      {/* Dice numbers */}
+      <Html>
+        <div className="dice-dots">•</div>
+      </Html>
+    </mesh>
+  );
+}
 
       {/* Movement cursor */}
       {selectedToken && (
