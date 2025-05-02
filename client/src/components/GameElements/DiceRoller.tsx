@@ -18,18 +18,29 @@ export default function DiceRoller({ onRollComplete }: DiceRollerProps) {
     playClick();
     setIsOpen(false);
 
-    // Calculate dice rolls
-    const results = Array(quantity).fill(0).map(() => {
-      const max = parseInt(selectedDice.substring(1));
-      return Math.floor(Math.random() * max) + 1;
+    // Emit event for 3D dice animation
+    const event = new CustomEvent('diceRoll', {
+      detail: {
+        diceType: selectedDice,
+        quantity: quantity
+      }
     });
+    window.dispatchEvent(event);
 
-    const total = results.reduce((a, b) => a + b, 0);
-    playSuccess();
+    // Delay the result calculation to match animation
+    setTimeout(() => {
+      const results = Array(quantity).fill(0).map(() => {
+        const max = parseInt(selectedDice.substring(1));
+        return Math.floor(Math.random() * max) + 1;
+      });
 
-    if (onRollComplete) {
-      onRollComplete(total, selectedDice);
-    }
+      const total = results.reduce((a, b) => a + b, 0);
+      playSuccess();
+
+      if (onRollComplete) {
+        onRollComplete(total, selectedDice);
+      }
+    }, 1500);
   };
 
   return (

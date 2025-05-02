@@ -100,6 +100,17 @@ function TableScene({
   tableSize = [20, 20],
   gridSize = 1
 }: GameTableProps) {
+  const [rollingDice, setRollingDice] = useState(false);
+
+  useEffect(() => {
+    const handleDiceRoll = (e: CustomEvent) => {
+      setRollingDice(true);
+      setTimeout(() => setRollingDice(false), 1500);
+    };
+
+    window.addEventListener('diceRoll', handleDiceRoll as EventListener);
+    return () => window.removeEventListener('diceRoll', handleDiceRoll as EventListener);
+  }, []);
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const { camera, raycaster, scene, gl } = useThree();
   const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -219,6 +230,16 @@ function TableScene({
         />
       ))}
       
+      {/* Dice animation */}
+      {rollingDice && (
+        <group position={[0, 5, 0]}>
+          <mesh castShadow>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="white" />
+          </mesh>
+        </group>
+      )}
+
       {/* Movement cursor */}
       {selectedToken && (
         <mesh position={intersectionPoint.current} rotation={[-Math.PI / 2, 0, 0]}>
