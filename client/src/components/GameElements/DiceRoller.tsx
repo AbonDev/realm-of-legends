@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '../UI/dialog';
 import { Button } from '../UI/Fantasy/Button';
@@ -14,29 +13,23 @@ export default function DiceRoller({ onRollComplete }: DiceRollerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDice, setSelectedDice] = useState<DiceType>('d20');
   const [quantity, setQuantity] = useState(1);
-  const [isRolling, setIsRolling] = useState(false);
 
   const handleRoll = () => {
     playClick();
     setIsOpen(false);
-    setIsRolling(true);
 
-    // Roll animation delay
-    setTimeout(() => {
-      // Calculate dice rolls
-      const results = Array(quantity).fill(0).map(() => {
-        const max = parseInt(selectedDice.substring(1));
-        return Math.floor(Math.random() * max) + 1;
-      });
+    // Calculate dice rolls
+    const results = Array(quantity).fill(0).map(() => {
+      const max = parseInt(selectedDice.substring(1));
+      return Math.floor(Math.random() * max) + 1;
+    });
 
-      const total = results.reduce((a, b) => a + b, 0);
-      playSuccess();
-      setIsRolling(false);
+    const total = results.reduce((a, b) => a + b, 0);
+    playSuccess();
 
-      if (onRollComplete) {
-        onRollComplete(total, selectedDice);
-      }
-    }, 1500); // Animation time
+    if (onRollComplete) {
+      onRollComplete(total, selectedDice);
+    }
   };
 
   return (
@@ -84,12 +77,6 @@ export default function DiceRoller({ onRollComplete }: DiceRollerProps) {
           </div>
         </DialogContent>
       </Dialog>
-
-      {isRolling && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center pointer-events-none">
-          <div className="text-6xl animate-bounce">🎲</div>
-        </div>
-      )}
     </>
   );
 }
