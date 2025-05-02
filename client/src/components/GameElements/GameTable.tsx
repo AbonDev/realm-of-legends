@@ -311,6 +311,11 @@ export default function GameTable(props: GameTableProps) {
   return (
     <div className="game-table">
       <div className="controls flex flex-wrap gap-2 mb-4">
+        <DiceRoller onRollComplete={(result, diceType) => {
+          // Here you can add visual effects for the dice roll on the table
+          console.log(`Rolled ${diceType}: ${result}`);
+        }} />
+        
         <Button
           onClick={() => alert('Controls:\n- Click on a token to select it\n- Click on the table to move the selected token\n- Right-click to add a new token')}
           className="ml-auto"
