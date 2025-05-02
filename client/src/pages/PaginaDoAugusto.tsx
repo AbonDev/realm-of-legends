@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import DiceRoller from "../components/GameElements/DiceRoller";
 import SimpleGameMap, { MapToken } from "../components/GameElements/SimpleGameMap";
@@ -8,6 +9,13 @@ import { playClick, playSuccess, playError } from "../lib/soundEffects";
 import { Button } from "../components/UI/Fantasy/Button";
 import { v4 as uuidv4 } from "uuid";
 
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 const sessionId =
   localStorage.getItem("sessionId") ||
   (() => {
@@ -16,14 +24,6 @@ const sessionId =
     return newId;
   })();
 
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
-
-// Message type for the chat
 type Message = {
   id: number;
   sender: 'dm' | 'player' | 'system';
@@ -31,33 +31,6 @@ type Message = {
   timestamp: string;
 };
 
-// Game action type for the sidebar
-type GameAction = {
-  id: number;
-  label: string;
-  description?: string;
-  disabled?: boolean;
-};
-
-// Character information type
-type CharacterInfo = {
-  name: string;
-  race: string;
-  class: string;
-  level: number;
-  health: {
-    current: number;
-    max: number;
-  };
-  mana: {
-    current: number;
-    max: number;
-  };
-  inventory: string[];
-  portrait: string;
-};
-
-// Function to ask the AI Dungeon Master
 async function askDungeonMaster(playerMessage: string): Promise<string> {
   try {
     const response = await fetch("/api/ask-gpt", {
@@ -65,7 +38,7 @@ async function askDungeonMaster(playerMessage: string): Promise<string> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: playerMessage,
-        sessionId: sessionId, // <-- importante
+        sessionId: sessionId,
       }),
     });
 
@@ -81,8 +54,6 @@ async function askDungeonMaster(playerMessage: string): Promise<string> {
   }
 }
 
-
-// Function to generate text-to-speech from the Dungeon Master's response
 async function playDungeonMasterVoice(text: string) {
   try {
     const response = await fetch("/api/tts", {
@@ -106,7 +77,6 @@ async function playDungeonMasterVoice(text: string) {
 }
 
 export default function GamePage() {
-  // State for messages in the chat
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -116,14 +86,10 @@ export default function GamePage() {
     }
   ]);
   
-  // State for text input
   const [inputMessage, setInputMessage] = useState("");
-  
-  // State for voice recognition
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   
-  // State for battle map
   const [mapTokens, setMapTokens] = useState<MapToken[]>([
     {
       id: 'player',
@@ -145,27 +111,20 @@ export default function GamePage() {
     }
   ]);
   
-  // Use character from global store
   const character = useCharacter();
-  
-  // State for game UI
   const [showDiceRoller, setShowDiceRoller] = useState(false);
   const [showBattleMap, setShowBattleMap] = useState(true);
   
-  // Audio context from the store
   const audioState = useAudio();
-  // Destructure the audio state
   const toggleMusic = audioState.toggleMusic;
   const isMusicPlaying = audioState.isMusicPlaying;
   const toggleSoundEffects = audioState.toggleSoundEffects;
   const areSoundEffectsEnabled = audioState.areSoundEffectsEnabled;
-  
-  // Function to handle sending a message
+
   async function handleSend(messageToSend?: string) {
     const message = messageToSend ?? inputMessage.trim();
     if (message === "") return;
 
-    // Add player message to chat
     const playerMessage: Message = {
       id: messages.length + 1,
       sender: 'player',
@@ -176,7 +135,6 @@ export default function GamePage() {
     setMessages(prev => [...prev, playerMessage]);
     setInputMessage("");
     
-    // Check for special commands
     if (message.toLowerCase().includes("roll dice") || message.toLowerCase().includes("roll a die")) {
       setShowDiceRoller(true);
       return;
@@ -196,7 +154,6 @@ export default function GamePage() {
       setMapTokens(prev => [...prev, newToken]);
       setShowBattleMap(true);
       
-      // Add system message about battle starting
       const systemMessage: Message = {
         id: messages.length + 2,
         sender: 'system',
@@ -209,10 +166,8 @@ export default function GamePage() {
     }
 
     try {
-      // Get response from AI Dungeon Master
       const response = await askDungeonMaster(message);
       
-      // Add DM message to chat
       const dmResponse: Message = {
         id: messages.length + 2,
         sender: 'dm',
@@ -222,12 +177,10 @@ export default function GamePage() {
       
       setMessages(prev => [...prev, dmResponse]);
       
-      // Play the DM's response as speech
       await playDungeonMasterVoice(response);
     } catch (error) {
       console.error(error);
       
-      // Add error message
       const errorMessage: Message = {
         id: messages.length + 2,
         sender: 'system',
@@ -240,11 +193,7 @@ export default function GamePage() {
     }
   }
 
-
-
-  // Handle dice roll completion
   const handleDiceRollComplete = (result: number, diceType: string) => {
-    // Add dice roll message
     const diceMessage: Message = {
       id: messages.length + 1,
       sender: 'system',
@@ -256,10 +205,8 @@ export default function GamePage() {
     
     setTimeout(async () => {
       try {
-        // Get DM response to the dice roll
         const dmResponse = await askDungeonMaster(`The player rolled a ${diceType} and got ${result}. Describe what happens based on this roll.`);
         
-        // Add DM message to chat
         const dmMessage: Message = {
           id: messages.length + 2,
           sender: 'dm',
@@ -269,7 +216,6 @@ export default function GamePage() {
         
         setMessages(prev => [...prev, dmMessage]);
         
-        // Play the DM's response as speech
         await playDungeonMasterVoice(dmResponse);
       } catch (error) {
         console.error(error);
@@ -278,7 +224,6 @@ export default function GamePage() {
     }, 1000);
   };
 
-  // Voice recognition functions
   const handleMouseDown = () => {
     const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionClass) {
@@ -313,7 +258,6 @@ export default function GamePage() {
     }
   };
 
-  // Scroll to bottom of chat when new messages arrive
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -339,17 +283,15 @@ export default function GamePage() {
         }
         
       } catch (error) {
-        console.error("Erro ao carregar histórico do chat:", error);
+        console.error("Error loading chat history:", error);
       }
     }
   
     fetchHistory();
   }, []);
-  
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white overflow-hidden">
-      {/* Header with game controls */}
       <header className="flex justify-between items-center p-2 bg-gray-900 border-b border-gray-800">
         <div className="font-fantasy text-xl">Realm of Legends</div>
         
@@ -369,14 +311,8 @@ export default function GamePage() {
           >
             {areSoundEffectsEnabled ? "🔊 Sound FX On" : "🔇 Sound FX Off"}
           </Button>
-          
-          <Button 
-            onClick={() => setShowDiceRoller(!showDiceRoller)} 
-            variant="ghost" 
-            size="sm"
-          >
-            🎲 {showDiceRoller ? "Hide Dice" : "Show Dice"}
-          </Button>
+
+          <DiceRoller onRollComplete={handleDiceRollComplete} />
           
           <Button 
             onClick={() => setShowBattleMap(!showBattleMap)}
@@ -388,11 +324,8 @@ export default function GamePage() {
         </div>
       </header>
 
-      {/* Main content - 3 column layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar - Character & Game Info */}
         <div className="w-64 bg-gray-800 p-4 overflow-y-auto border-r border-gray-700">
-          {/* Character Portrait */}
           <div className="mb-6 flex flex-col items-center">
             <div 
               className="character-portrait w-40 h-40 rounded-full mb-3 bg-cover bg-center border-4 border-gray-600"
@@ -457,16 +390,7 @@ export default function GamePage() {
           </div>
         </div>
 
-        {/* Main content area - Game Table */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Dice Roller (Collapsible) */}
-          {showDiceRoller && (
-            <div className="p-4">
-              <DiceRoller onRollComplete={handleDiceRollComplete} />
-            </div>
-          )}
-          
-          {/* Battle Map */}
           {showBattleMap && (
             <div className="flex-1 p-4 flex justify-center">
               <SimpleGameMap 
@@ -500,9 +424,7 @@ export default function GamePage() {
           )}
         </div>
 
-        {/* Right sidebar - Chat with DM */}
         <div className="w-80 flex flex-col bg-gray-800 border-l border-gray-700">
-          {/* Chat messages */}
           <div className="flex-1 p-4 overflow-y-auto">
             <div className="space-y-4">
               {messages.map((msg) => (
@@ -518,7 +440,6 @@ export default function GamePage() {
             </div>
           </div>
           
-          {/* Input area */}
           <div className="p-4 border-t border-gray-700">
             <div className="flex items-center space-x-2">
               <button
