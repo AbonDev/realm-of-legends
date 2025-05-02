@@ -30,17 +30,21 @@ export default function DiceRoller({ onRollComplete }: DiceRollerProps) {
       });
 
       const total = results.reduce((a, b) => a + b, 0);
-      playSuccess();
-
-      if (onRollComplete) {
-        onRollComplete(total, selectedDice);
-      }
-
+      
+      // Wait for animation to complete and add delay before closing
       setTimeout(() => {
-        setIsRolling(false);
-        setIsOpen(false);
-      }, 1000);
-    }, 1500);
+        playSuccess();
+        if (onRollComplete) {
+          onRollComplete(total, selectedDice);
+        }
+        
+        // Add 3 second delay before closing
+        setTimeout(() => {
+          setIsRolling(false);
+          setIsOpen(false);
+        }, 3000);
+      }, 2500);
+    }, 2000);
   };
 
   return (

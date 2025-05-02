@@ -57,7 +57,7 @@ export default function DiceAnimation({ onAnimationComplete }: DiceAnimationProp
   return (
     <mesh ref={meshRef} position={state.position.toArray()} castShadow>
       <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="white" roughness={0.3} metalness={0.2} />
+      <meshStandardMaterial color="#f0f0f0" roughness={0.2} metalness={0.1} />
       {[...Array(6)].map((_, i) => (
         <Html
           key={i}
@@ -73,17 +73,30 @@ export default function DiceAnimation({ onAnimationComplete }: DiceAnimationProp
           ]}
         >
           <div className="dice-face" style={{
-            width: '30px',
-            height: '30px',
-            background: 'white',
-            border: '2px solid black',
-            borderRadius: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px'
+            width: '40px',
+            height: '40px',
+            background: 'ivory',
+            border: '3px solid #8B4513',
+            borderRadius: '8px',
+            boxShadow: 'inset 0 0 10px rgba(0,0,0,0.2)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateRows: 'repeat(3, 1fr)',
+            padding: '2px',
+            transform: 'translate(-50%, -50%)'
           }}>
-            {i + 1}
+            {[...Array(i + 1)].map((_, dotIndex) => (
+              <div
+                key={dotIndex}
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  background: '#8B4513',
+                  borderRadius: '50%',
+                  margin: 'auto'
+                }}
+              />
+            ))}
           </div>
         </Html>
       ))}
