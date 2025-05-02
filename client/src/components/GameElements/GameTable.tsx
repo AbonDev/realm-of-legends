@@ -240,38 +240,49 @@ function TableScene({
       )}
 
 function DiceAnimation({ onAnimationComplete }: { onAnimationComplete: () => void }) {
-  const [position] = useState<[number, number, number]>([
-    Math.random() * 4 - 2,
-    8,
-    Math.random() * 4 - 2
-  ]);
-  
+  const [velocity, setVelocity] = useState({ y: 0, rotX: 15, rotY: 10, rotZ: 12 });
   const meshRef = useRef<THREE.Mesh>(null);
   
+  const [position] = useState<[number, number, number]>([
+    Math.random() * 4 - 2,
+    10,
+    Math.random() * 4 - 2
+  ]);
+
   useFrame((state, delta) => {
     if (meshRef.current) {
-      // Add gravity
+      // Physics simulation
       if (meshRef.current.position.y > 0.5) {
-        meshRef.current.position.y -= 9.8 * delta;
+        // Apply gravity
+        setVelocity(v => ({ ...v, y: v.y - 20 * delta }));
+        meshRef.current.position.y += velocity.y * delta;
+        
+        // Add tumbling rotation
+        meshRef.current.rotation.x += velocity.rotX * delta;
+        meshRef.current.rotation.y += velocity.rotY * delta;
+        meshRef.current.rotation.z += velocity.rotZ * delta;
       } else {
-        onAnimationComplete();
+        // Bounce effect
+        if (Math.abs(velocity.y) > 0.5) {
+          setVelocity(v => ({ 
+            y: -v.y * 0.5, // Bounce with reduced velocity
+            rotX: v.rotX * 0.8,
+            rotY: v.rotY * 0.8,
+            rotZ: v.rotZ * 0.8
+          }));
+          meshRef.current.position.y = 0.5;
+        } else {
+          onAnimationComplete();
+        }
       }
-      
-      // Add rotation
-      meshRef.current.rotation.x += delta * 5;
-      meshRef.current.rotation.y += delta * 3;
-      meshRef.current.rotation.z += delta * 4;
     }
   });
 
   return (
     <mesh ref={meshRef} position={position} castShadow>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="white" />
-      {/* Dice numbers */}
-      <Html>
-        <div className="dice-dots">•</div>
-      </Html>
+      <boxGeometry args={[1.5, 1.5, 1.5]} />
+      <meshStandardMaterial color="white" roughness={0.3} metalness={0.2} />
+      <pointLight position={[0, 2, 0]} intensity={0.5} color="white" />
     </mesh>
   );
 }
