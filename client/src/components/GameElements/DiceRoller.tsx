@@ -34,8 +34,8 @@ export default function DiceRoller({ onRollComplete }: DiceRollerProps) {
 
   return (
     <>
-      <Button onClick={() => setIsOpen(true)} size="sm" variant="outline">
-        🎲 Roll Dice
+      <Button onClick={() => setIsOpen(true)} size="sm" variant="ghost">
+        🎲 Dice
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>

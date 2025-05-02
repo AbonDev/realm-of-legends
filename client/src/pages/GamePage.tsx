@@ -304,6 +304,8 @@ export default function GamePage() {
           >
             {areSoundEffectsEnabled ? "🔊 Sound FX On" : "🔇 Sound FX Off"}
           </Button>
+
+          <DiceRoller onRollComplete={handleDiceRollComplete} />
           
           <Button 
             onClick={() => setShowBattleMap(!showBattleMap)}
@@ -382,10 +384,6 @@ export default function GamePage() {
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="p-4">
-            <DiceRoller onRollComplete={handleDiceRollComplete} />
-          </div>
-          
           {showBattleMap && (
             <div className="flex-1 p-4 flex justify-center">
               <SimpleGameMap 
