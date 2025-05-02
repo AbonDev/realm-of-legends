@@ -240,49 +240,104 @@ function TableScene({
       )}
 
 function DiceAnimation({ onAnimationComplete }: { onAnimationComplete: () => void }) {
-  const [velocity, setVelocity] = useState({ y: 0, rotX: 15, rotY: 10, rotZ: 12 });
   const meshRef = useRef<THREE.Mesh>(null);
-  
-  const [position] = useState<[number, number, number]>([
-    Math.random() * 4 - 2,
-    10,
-    Math.random() * 4 - 2
-  ]);
+  const [state, setState] = useState({
+    position: new THREE.Vector3(Math.random() * 4 - 2, 8, Math.random() * 4 - 2),
+    velocity: new THREE.Vector3(Math.random() * 4 - 2, 0, Math.random() * 4 - 2),
+    angularVelocity: new THREE.Vector3(
+      Math.random() * 10 - 5,
+      Math.random() * 10 - 5,
+      Math.random() * 10 - 5
+    ),
+    bounceCount: 0
+  });
 
-  useFrame((state, delta) => {
-    if (meshRef.current) {
-      // Physics simulation
-      if (meshRef.current.position.y > 0.5) {
-        // Apply gravity
-        setVelocity(v => ({ ...v, y: v.y - 20 * delta }));
-        meshRef.current.position.y += velocity.y * delta;
-        
-        // Add tumbling rotation
-        meshRef.current.rotation.x += velocity.rotX * delta;
-        meshRef.current.rotation.y += velocity.rotY * delta;
-        meshRef.current.rotation.z += velocity.rotZ * delta;
+  useFrame((_, delta) => {
+    if (!meshRef.current) return;
+
+    // Apply gravity
+    state.velocity.y -= 9.81 * delta;
+
+    // Update position
+    state.position.add(state.velocity.clone().multiplyScalar(delta));
+    meshRef.current.position.copy(state.position);
+
+    // Apply rotation
+    meshRef.current.rotation.x += state.angularVelocity.x * delta;
+    meshRef.current.rotation.y += state.angularVelocity.y * delta;
+    meshRef.current.rotation.z += state.angularVelocity.z * delta;
+
+    // Ground collision
+    if (state.position.y < 0.5 && state.velocity.y < 0) {
+      if (state.bounceCount < 3) {
+        // Bounce with energy loss
+        state.velocity.y = -state.velocity.y * 0.5;
+        state.velocity.x *= 0.7;
+        state.velocity.z *= 0.7;
+        state.angularVelocity.multiplyScalar(0.6);
+        state.position.y = 0.5;
+        state.bounceCount += 1;
       } else {
-        // Bounce effect
-        if (Math.abs(velocity.y) > 0.5) {
-          setVelocity(v => ({ 
-            y: -v.y * 0.5, // Bounce with reduced velocity
-            rotX: v.rotX * 0.8,
-            rotY: v.rotY * 0.8,
-            rotZ: v.rotZ * 0.8
-          }));
-          meshRef.current.position.y = 0.5;
-        } else {
+        // Come to rest
+        state.velocity.set(0, 0, 0);
+        state.angularVelocity.multiplyScalar(0.95);
+        state.position.y = 0.5;
+
+        // Check if dice has stopped
+        if (state.angularVelocity.length() < 0.1) {
           onAnimationComplete();
         }
       }
     }
+
+    // Wall collisions
+    const bounds = 5;
+    if (Math.abs(state.position.x) > bounds) {
+      state.velocity.x *= -0.8;
+      state.position.x = Math.sign(state.position.x) * bounds;
+    }
+    if (Math.abs(state.position.z) > bounds) {
+      state.velocity.z *= -0.8;
+      state.position.z = Math.sign(state.position.z) * bounds;
+    }
+
+    setState({ ...state });
   });
 
   return (
-    <mesh ref={meshRef} position={position} castShadow>
-      <boxGeometry args={[1.5, 1.5, 1.5]} />
+    <mesh ref={meshRef} position={state.position.toArray()} castShadow>
+      <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial color="white" roughness={0.3} metalness={0.2} />
-      <pointLight position={[0, 2, 0]} intensity={0.5} color="white" />
+      {/* Dice faces */}
+      {[...Array(6)].map((_, i) => (
+        <Html
+          key={i}
+          position={[
+            i === 0 ? 0.51 : i === 1 ? -0.51 : 0,
+            i === 2 ? 0.51 : i === 3 ? -0.51 : 0,
+            i === 4 ? 0.51 : i === 5 ? -0.51 : 0
+          ]}
+          rotation={[
+            i === 2 || i === 3 ? Math.PI / 2 : 0,
+            i === 0 || i === 1 ? Math.PI / 2 : 0,
+            0
+          ]}
+        >
+          <div className="dice-face" style={{
+            width: '30px',
+            height: '30px',
+            background: 'white',
+            border: '2px solid black',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px'
+          }}>
+            {i + 1}
+          </div>
+        </Html>
+      ))}
     </mesh>
   );
 }
