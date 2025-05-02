@@ -47,27 +47,29 @@ function Dice({ diceType, onRollComplete }: { diceType: DiceType, onRollComplete
   const getDiceGeometry = () => {
     switch (diceType) {
       case 'd4':
-        return <tetrahedronGeometry args={[1.2, 0]} />;
+        return <tetrahedronGeometry args={[1.4, 0]} />;
       case 'd8':
-        return <octahedronGeometry args={[1.2, 0]} />;
+        return <octahedronGeometry args={[1.4, 0]} />;
       case 'd10':
-        return <dodecahedronGeometry args={[1.2, 0]} />;
+        return <dodecahedronGeometry args={[1.4, 0]} />;
       case 'd12':
-        return <dodecahedronGeometry args={[1.2, 0]} />;
+        return <dodecahedronGeometry args={[1.4, 0]} />;
       case 'd20':
-        return <icosahedronGeometry args={[1.2, 0]} />;
+        return <icosahedronGeometry args={[1.4, 0]} />;
       case 'd6':
       default:
-        return <boxGeometry args={[1.2, 1.2, 1.2]} />;
+        return <boxGeometry args={[1.4, 1.4, 1.4]} />;
     }
   };
   
-  // Create a gold material for the dice
+  // Create a metallic material for the dice
   const diceMaterial = (
     <meshStandardMaterial
-      color="#d4af37"
-      metalness={0.7}
-      roughness={0.3}
+      color="#e0e0e0"
+      metalness={0.9}
+      roughness={0.1}
+      emissive="#404040"
+      emissiveIntensity={0.2}
     />
   );
   
@@ -87,20 +89,26 @@ function Dice({ diceType, onRollComplete }: { diceType: DiceType, onRollComplete
     newRotation[1] += velocity.current.rotation[1];
     newRotation[2] += velocity.current.rotation[2];
     
-    // Bounce on floor
+    // Bounce on floor with more dynamic movement
     if (newPosition[1] < 0) {
       newPosition[1] = 0;
-      velocity.current.position[1] *= -0.6; // Bounce with damping
+      velocity.current.position[1] *= -0.7; // More bouncy
       
-      // Slow down on each bounce
-      velocity.current.position[0] *= 0.8;
-      velocity.current.position[2] *= 0.8;
-      velocity.current.rotation[0] *= 0.9;
-      velocity.current.rotation[1] *= 0.9;
-      velocity.current.rotation[2] *= 0.9;
+      // Add slight randomness to bounce direction
+      velocity.current.position[0] += (Math.random() - 0.5) * 0.1;
+      velocity.current.position[2] += (Math.random() - 0.5) * 0.1;
+      
+      // Slow down with better physics feel
+      velocity.current.position[0] *= 0.85;
+      velocity.current.position[2] *= 0.85;
+      velocity.current.rotation[0] *= 0.92;
+      velocity.current.rotation[1] *= 0.92;
+      velocity.current.rotation[2] *= 0.92;
     } else {
-      // Apply gravity
-      velocity.current.position[1] -= 0.01;
+      // Apply gravity with slight air resistance
+      velocity.current.position[1] -= 0.015;
+      velocity.current.position[0] *= 0.99;
+      velocity.current.position[2] *= 0.99;
     }
     
     setPosition(newPosition);
