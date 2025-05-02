@@ -306,14 +306,6 @@ export default function GamePage() {
           </Button>
           
           <Button 
-            onClick={() => setShowDiceRoller(!showDiceRoller)} 
-            variant="ghost" 
-            size="sm"
-          >
-            🎲 {showDiceRoller ? "Hide Dice" : "Show Dice"}
-          </Button>
-          
-          <Button 
             onClick={() => setShowBattleMap(!showBattleMap)}
             variant="ghost" 
             size="sm"
@@ -390,11 +382,9 @@ export default function GamePage() {
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          {showDiceRoller && (
-            <div className="p-4">
-              <DiceRoller onRollComplete={handleDiceRollComplete} />
-            </div>
-          )}
+          <div className="p-4">
+            <DiceRoller onRollComplete={handleDiceRollComplete} />
+          </div>
           
           {showBattleMap && (
             <div className="flex-1 p-4 flex justify-center">
