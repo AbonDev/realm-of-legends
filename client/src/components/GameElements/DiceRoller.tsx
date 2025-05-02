@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '../UI/dialog';
 import { Button } from '../UI/Fantasy/Button';
@@ -7,74 +8,88 @@ type DiceType = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
 
 interface DiceRollerProps {
   onRollComplete?: (result: number, diceType: DiceType) => void;
-  position?: [number, number, number];
 }
 
-export default function DiceRoller({ onRollComplete, position }: DiceRollerProps) {
+export default function DiceRoller({ onRollComplete }: DiceRollerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDice, setSelectedDice] = useState<DiceType>('d20');
   const [quantity, setQuantity] = useState(1);
+  const [isRolling, setIsRolling] = useState(false);
 
   const handleRoll = () => {
     playClick();
     setIsOpen(false);
+    setIsRolling(true);
 
-    // Simple dice roll calculation
-    const results = Array(quantity).fill(0).map(() => {
-      const max = parseInt(selectedDice.substring(1));
-      return Math.floor(Math.random() * max) + 1;
-    });
+    // Roll animation delay
+    setTimeout(() => {
+      // Calculate dice rolls
+      const results = Array(quantity).fill(0).map(() => {
+        const max = parseInt(selectedDice.substring(1));
+        return Math.floor(Math.random() * max) + 1;
+      });
 
-    const total = results.reduce((a, b) => a + b, 0);
-    playSuccess();
+      const total = results.reduce((a, b) => a + b, 0);
+      playSuccess();
+      setIsRolling(false);
 
-    if (onRollComplete) {
-      onRollComplete(total, selectedDice);
-    }
+      if (onRollComplete) {
+        onRollComplete(total, selectedDice);
+      }
+    }, 1500); // Animation time
   };
 
   return (
     <>
-      <Button onClick={() => setIsOpen(true)} size="sm">
-        Roll Dice
+      <Button onClick={() => setIsOpen(true)} size="sm" variant="outline">
+        🎲 Roll Dice
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="bg-gray-900 text-white">
-          <DialogTitle>Roll Dice</DialogTitle>
+        <DialogContent className="bg-gray-900 text-white border border-gray-700 rounded-lg shadow-xl w-[400px]">
+          <DialogTitle className="text-2xl font-fantasy text-center text-gold mb-4">Choose Your Dice</DialogTitle>
 
-          <div className="flex flex-col gap-4 py-4">
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-6 p-4">
+            <div className="grid grid-cols-3 gap-3">
               {(['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] as DiceType[]).map((type) => (
                 <Button
                   key={type}
                   onClick={() => setSelectedDice(type)}
                   variant={selectedDice === type ? 'primary' : 'ghost'}
-                  size="sm"
+                  className={`h-16 text-xl ${selectedDice === type ? 'ring-2 ring-gold' : ''}`}
                 >
                   {type}
                 </Button>
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span>Quantity:</span>
+            <div className="flex items-center gap-4 justify-center">
+              <span className="text-lg">Quantity:</span>
               <input
                 type="number"
                 min="1"
                 max="10"
                 value={quantity}
                 onChange={(e) => setQuantity(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
-                className="w-16 bg-gray-800 text-white rounded px-2 py-1"
+                className="w-20 bg-gray-800 text-white rounded px-3 py-2 text-center text-lg border border-gray-700"
               />
             </div>
 
-            <Button onClick={handleRoll} className="mt-2">
+            <Button 
+              onClick={handleRoll} 
+              className="mt-4 text-lg h-12 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-500 hover:to-yellow-600"
+            >
               Roll {quantity} {selectedDice}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {isRolling && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center pointer-events-none">
+          <div className="text-6xl animate-bounce">🎲</div>
+        </div>
+      )}
     </>
   );
 }
